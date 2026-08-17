@@ -37,12 +37,13 @@ def test_firebase_refresh_exchanges_refresh_token_without_leaking_it(monkeypatch
 
 def test_session_store_writes_owner_only_file_and_loads_session(tmp_path):
     """Condition: a token is imported. Expected: atomic versioned owner-only session."""
-    path = tmp_path / "session.json"
+    path = tmp_path / "private" / "session.json"
     store = SessionStore(path)
 
     store.save("refresh-token")
 
     assert json.loads(path.read_text()) == {"version": 1, "refreshToken": "refresh-token"}
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert store.load().refresh_token == "refresh-token"
 

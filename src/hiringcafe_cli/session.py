@@ -51,13 +51,15 @@ class SessionStore:
         """
         if not refresh_token:
             raise ValueError("refresh token must not be empty")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = self.path.with_suffix(".tmp")
-        temporary.write_text(
-            json.dumps({"version": SESSION_VERSION, "refreshToken": refresh_token}, separators=(",", ":")),
-            encoding="utf-8",
-        )
-        os.chmod(temporary, 0o600)
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            json.dump(
+                {"version": SESSION_VERSION, "refreshToken": refresh_token},
+                output,
+                separators=(",", ":"),
+            )
         os.replace(temporary, self.path)
 
     def delete(self) -> None:
