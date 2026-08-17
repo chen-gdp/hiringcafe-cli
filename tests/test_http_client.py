@@ -1,7 +1,7 @@
 """Tests for the anonymous HiringCafe HTTP and SSR client."""
 
-import json
 import io
+import json
 
 import pytest
 

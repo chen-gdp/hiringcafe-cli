@@ -61,7 +61,9 @@ class CacheStore:
             os.chmod(self.root, 0o700)
         temporary = self.path(key).with_suffix(".tmp")
         temporary.write_text(
-            json.dumps({"version": VERSION, "expiresAt": int(time.time() + ttl), "value": value}, separators=(",", ":")),
+            json.dumps(
+                {"version": VERSION, "expiresAt": int(time.time() + ttl), "value": value}, separators=(",", ":")
+            ),
             encoding="utf-8",
         )
         os.chmod(temporary, 0o600)

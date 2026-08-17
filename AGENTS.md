@@ -54,6 +54,7 @@ Prefix shell commands with `rtk` when available.
 uv sync
 uv run pytest
 uv run hiringcafe --help
+uv run pre-commit run --all-files
 ```
 
 Use `rtk` for compact git/file operations:

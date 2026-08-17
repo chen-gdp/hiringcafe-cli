@@ -1,6 +1,5 @@
 import contextlib
 import io
-import json
 
 from hiringcafe_cli import saved_jobs_stage
 from hiringcafe_cli.firebase import FirebaseAuthError
@@ -109,6 +108,7 @@ def test_stage_orders_marketplace_firestore_then_old_list_cleanup(tmp_path, monk
         calls.append(("marketplace", object_id, id_token, stage))
 
     monkeypatch.setattr(saved_jobs_stage.WebClient, "marketplace_stage", marketplace)
+
     def remove(self, object_id, id_token, stage):
         calls.append(("remove", object_id, id_token, stage))
 

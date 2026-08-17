@@ -5,7 +5,9 @@ import json
 from hiringcafe_cli.search import search
 
 
-def count(query: str, raw_search_state: str | None = None, no_cache: bool = False, cache_ttl: int | None = None) -> dict:
+def count(
+    query: str, raw_search_state: str | None = None, no_cache: bool = False, cache_ttl: int | None = None
+) -> dict:
     """Count results by requesting page zero.
 
     Args:

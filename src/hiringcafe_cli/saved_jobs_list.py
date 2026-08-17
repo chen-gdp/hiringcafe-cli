@@ -1,15 +1,14 @@
 """Authenticated saved-job listing."""
 
 import json
+import sys
 import urllib.error
 import urllib.request
-import sys
 from urllib.request import urlopen
 
 from hiringcafe_cli.auth import store
-from hiringcafe_cli.firebase import FirebaseClient, FirebaseAuthError
+from hiringcafe_cli.firebase import FirebaseClient
 from hiringcafe_cli.saved_jobs import PIPELINE_STAGES, VALID_STAGES, encode_firestore_value, normalize_saved_job
-from hiringcafe_cli.session import SessionStore
 
 FIRESTORE_DOCUMENTS = "https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d6/databases/(default)/documents"
 FIRESTORE_RUN_QUERY = f"{FIRESTORE_DOCUMENTS}:runQuery"

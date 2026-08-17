@@ -62,7 +62,7 @@ def status(argv: object, json_output: bool = False) -> int:
         else:
             print("No stored credential", file=sys.stderr)
         return 4
-    credentials = FirebaseClient().refresh(session.refresh_token)
+    FirebaseClient().refresh(session.refresh_token)
     if json_output:
         payload = json.dumps(
             {"version": 1, "authenticated": True},

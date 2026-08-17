@@ -3,8 +3,8 @@
 import json
 import os
 import urllib.parse
-from urllib.request import urlopen
 from html.parser import HTMLParser
+from urllib.request import urlopen
 
 BASE_URL = os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com")
 SEARCH_STATE = {"searchQuery": "python developer"}
@@ -131,7 +131,7 @@ def main(argv: object | None = None, json_output: bool = False) -> int:
     if not isinstance(detail, dict) or not isinstance(detail.get("job"), dict):
         raise ValueError("job response has no job object")
 
-    for index, properties in enumerate(pages):
+    for index in range(len(pages)):
         print(f"search page {index}: ok")
     print(f"job description {object_id}: ok")
     return 0
