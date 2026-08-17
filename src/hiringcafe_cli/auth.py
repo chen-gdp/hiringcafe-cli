@@ -72,3 +72,24 @@ def status(argv: object, json_output: bool = False) -> int:
     else:
         print("Authenticated")
     return 0
+
+
+def logout(argv: object, json_output: bool = False) -> int:
+    """Delete the local Firebase session.
+
+    Args:
+        argv: Unused CLI namespace.
+        json_output: Unused; logout output remains intentionally human-only.
+
+    Returns:
+        Exit code 0 after local credential removal.
+    """
+    session_store = store()
+    had_session = session_store.load() is not None
+    try:
+        session_store.delete()
+    except OSError as error:
+        print(f"hiringcafe: cannot remove session: {error}", file=sys.stderr)
+        return 1
+    print("Local Firebase session removed" if had_session else "No local Firebase session")
+    return 0
