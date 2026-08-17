@@ -1062,3 +1062,26 @@ Add automated quality gates without changing CLI behavior:
 - CI runs on pull requests and pushes to `main`.
 - Existing source passes format/lint checks.
 - Existing tests and package build pass.
+
+### PR 6.3 — Secure session storage
+
+#### Spec
+
+Close the local session permission race without changing the session format:
+
+- Create new configuration directories with mode `0700`.
+- Use a private unpredictable temporary file in the session directory, force `0600` before writing the refresh token, and clean it up on failure.
+- Preserve atomic replacement, sync-before-replace, and the final owner-only session mode.
+
+#### Out of scope
+
+- OS keychain storage.
+- Changing credential representation.
+- Encrypting the refresh token.
+
+#### Acceptance criteria
+
+- A newly created configuration directory is owner-only.
+- No interval exists where the temporary file containing the refresh token is group/world readable.
+- Failed writes do not leave refresh-token temporary files behind.
+- Existing tests and quality checks pass.
