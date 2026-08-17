@@ -1,6 +1,9 @@
 """HiringCafe CLI package interface."""
 
 import argparse
+import sys
+
+from hiringcafe_cli import probe
 
 __version__ = "0.1.0"
 
@@ -29,6 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    subparsers = parser.add_subparsers(dest="command")
+    probe_parser = subparsers.add_parser("probe", help="run the opt-in live endpoint probe")
+    probe_parser.set_defaults(handler=probe.main)
     return parser
 
 
@@ -38,4 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     Args:
         argv: Optional argv list; defaults to ``sys.argv[1:]``.
     """
-    build_parser().parse_args(argv)
+    arguments = build_parser().parse_args(argv)
+    handler = getattr(arguments, "handler", None)
+    if handler is not None:
+        raise SystemExit(handler([]))

@@ -4,7 +4,8 @@ A private, spec-driven Python CLI for [Hiring Cafe](https://hiringcafe.com/) job
 
 ## Status
 
-PR 0.1 is implemented: the executable bootstrap and exit-code contract are available.
+PRs 0.1 and 0.2 are implemented: executable bootstrap, exit-code contract, offline SSR parser coverage,
+and an explicitly opt-in live probe.
 
 - Product plan and verified endpoint inventory: [`roadmap.md`](roadmap.md)
 - Implementation specifications: [`specs/`](specs/)
@@ -26,7 +27,14 @@ uv run hiringcafe --help
 uv run hiringcafe --version
 ```
 
-Current commands are intentionally limited to `--help` and `--version`; search and auth commands arrive with their roadmap PRs.
+Run the verified anonymous endpoint probe explicitly:
+
+```bash
+LIVE=1 uv run hiringcafe probe
+```
+
+Normal tests never access the network. Current commands are intentionally limited to `--help`,
+`--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
 
 ## Repository conventions
 
