@@ -1,73 +1,70 @@
 # HiringCafe CLI
 
-An unofficial, spec-driven Python CLI for [Hiring Cafe](https://hiringcafe.com/) job search and saved-job tracking. It is designed for people and autonomous agents, with machine-readable JSON output and stable exit codes.
+Give your AI agent Hiring Cafe superpowers: search jobs, inspect postings, and keep your Hiring Cafe saved-job board in sync without a browser.
 
-This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change without notice.
+```bash
+hiringcafe search "python developer" --pages 3 --jsonl
+```
 
-## Status
+The result is stable JSON/JSONL, explicit exit codes, cached anonymous reads, bounded retries, and authenticated actions against your real Hiring Cafe account.
 
-Beta. The documented search, job-detail, authentication, and saved-job workflows are implemented and covered by isolated tests. PR 2.3, the browser OAuth login flow, remains intentionally deferred.
+> **Unofficial client.** This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change.
 
-- Product plan and verified endpoint inventory: [`roadmap.md`](roadmap.md)
-- Implementation specifications: [`specs/`](specs/)
+## For agents
 
-## Install
-
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/):
+Agents can install and verify the CLI in three commands:
 
 ```bash
 uv tool install git+https://github.com/chen-gdp/hiringcafe-cli.git
 hiringcafe --version
+hiringcafe search "python developer" --page 0 --json
 ```
 
-Run from a checkout without a global install:
+Feed the output directly to your tooling:
 
 ```bash
-uv sync
-uv run hiringcafe --help
+# One JSON object per page
+hiringcafe search "python developer" --pages 3 --jsonl
+
+# One line per job
+hiringcafe search "python developer" --pages 3 --json | jq -c '.jobs[]'
+
+# Machine-readable result count
+hiringcafe count "python developer" --json
 ```
 
-## Authenticate
-
-The CLI uses Hiring Cafe’s Firebase email/password login and stores only the returned Firebase refresh token.
-
-```bash
-hiringcafe auth login --email you@example.com
-hiringcafe auth status --json
-hiringcafe auth logout
-```
-
-The password is read through hidden input, exchanged once, and discarded. Automation can provide a refresh token through stdin:
+Import an existing Firebase refresh token without an interactive password prompt:
 
 ```bash
 printf '%s\n' "$HIRINGCAFE_REFRESH_TOKEN" | hiringcafe auth import
+hiringcafe saved-jobs list --json
 ```
 
-Local data:
+Safe automation contract:
 
-| Data | Location | Notes |
-|---|---|---|
-| Refresh token | `~/.config/hiringcafe-cli/session.json` | owner-only file; removed by logout |
-| Anonymous cache | `~/.cache/hiringcafe-cli/cache/v1/` | public search/job data only |
+- JSON success output goes to stdout; cache diagnostics go to stderr.
+- Stable exit codes describe transport, input, rate-limit, auth, and conflict outcomes.
+- Passwords and Firebase ID tokens are never written to disk.
+- Authenticated mutations are never retried or cached.
+- Anonymous search/count responses use a 15-minute cache; job details use 24 hours.
 
-Set `HIRINGCAFE_CONFIG_HOME` or `HIRINGCAFE_CACHE_HOME` to use different roots. Firebase ID tokens and account passwords are never written to disk.
-
-## Search and inspect jobs
+## For humans
 
 ```bash
+hiringcafe auth login --email you@example.com
 hiringcafe search "python developer" --page 0 --json
-hiringcafe search --raw-search-state '{"searchQuery":"python developer"}' --json
-hiringcafe search "python developer" --pages 3 --jsonl
-hiringcafe count "python developer" --json
 hiringcafe job show <objectID> --json
+hiringcafe saved-jobs list --json
+hiringcafe auth logout
 ```
+
+The password is read through hidden input, exchanged once, and discarded.
 
 ## Saved jobs
 
-These commands use your real Hiring Cafe account. Review the object ID and confirmation prompts before mutating data.
+These commands modify your real Hiring Cafe account. Review object IDs and confirmation prompts before changing data.
 
 ```bash
-hiringcafe saved-jobs list --json
 hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe saved-jobs stage <objectID> --stage interviewing
 hiringcafe saved-jobs remove <objectID> --yes
@@ -75,9 +72,14 @@ hiringcafe saved-jobs remove <objectID> --yes
 
 Valid stages are `saved`, `applied`, `interviewing`, `offer`, `rejected`, `ghosted`, and `hidden`.
 
-## Performance and retries
+## Local data
 
-Anonymous search/count responses use a 15-minute local TTL cache; job details use 24 hours. Cache status is written to stderr.
+| Data | Location | Notes |
+|---|---|---|
+| Refresh token | `~/.config/hiringcafe-cli/session.json` | owner-only file; removed by logout |
+| Anonymous cache | `~/.cache/hiringcafe-cli/cache/v1/` | public search/job data only |
+
+Set `HIRINGCAFE_CONFIG_HOME` or `HIRINGCAFE_CACHE_HOME` to use different roots.
 
 ```bash
 hiringcafe search "python developer" --no-cache
@@ -85,21 +87,21 @@ hiringcafe search "python developer" --cache-ttl 3600
 hiringcafe cache purge
 ```
 
-Anonymous GETs retry transport failures, HTTP 408/429, and 5xx twice with bounded jittered backoff. Authenticated mutations are never retried and authenticated responses are never cached.
-
 ## Exit codes
 
-| Code | Meaning |
+| Code | Agent action |
 |---:|---|
 | `0` | success |
-| `1` | transport, HTTP, parsing, or API error |
-| `2` | invalid arguments or search state |
-| `3` | rate limited |
-| `4` | no stored credential |
-| `5` | stored credential rejected |
-| `6` | write conflict or prerequisite missing |
+| `1` | transport, HTTP, parsing, or API error; inspect stderr |
+| `2` | invalid arguments or search state; fix the request |
+| `3` | rate limited; wait and retry |
+| `4` | no stored credential; authenticate first |
+| `5` | stored credential rejected; re-authenticate |
+| `6` | write conflict or prerequisite missing; refresh state |
 
 ## Development
+
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
@@ -108,15 +110,12 @@ uv run hiringcafe --help
 uv run pre-commit run --all-files
 ```
 
-Normal tests do not access the network. Run the verified anonymous endpoint probe explicitly:
+Normal tests do not access the network. The verified anonymous endpoint probe is opt-in:
 
 ```bash
 LIVE=1 uv run hiringcafe probe
 ```
 
-## Repository conventions
+Every implementation change traces to `specs/pr-*/spec.md` and the roadmap. Never commit credentials, Firebase tokens, cookies, real UIDs, emails, or private account data.
 
-- Python code follows [`AGENTS.md`](AGENTS.md) and the roadmap.
-- Every implementation change traces to `specs/pr-*/spec.md`.
-- Live network probes are opt-in and never run by default.
-- Never commit credentials, Firebase tokens, cookies, real UIDs, emails, or private account data.
+Beta status: search, job details, authentication, and saved-job workflows are implemented. Browser OAuth login remains intentionally deferred. See [`roadmap.md`](roadmap.md) and [`specs/`](specs/).
