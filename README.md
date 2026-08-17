@@ -59,6 +59,7 @@ Authenticate using Firebase. The CLI stores only a refresh token in an owner-onl
 hiringcafe auth login --email you@example.com
 printf '%s\n' "$HIRINGCAFE_REFRESH_TOKEN" | hiringcafe auth import
 hiringcafe auth status --json
+hiringcafe saved-jobs list --json
 hiringcafe auth logout
 ```
 
