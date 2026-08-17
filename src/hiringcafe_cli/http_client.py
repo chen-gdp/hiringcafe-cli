@@ -128,6 +128,26 @@ class WebClient:
             raise ValueError("job-description response has no job object")
         return job
 
+    def marketplace_stage(self, object_id: str, id_token: str, stage: str) -> None:
+        """Sync a saved-job stage through the verified marketplace endpoint."""
+        body = json.dumps(
+            {"job_id": object_id, "user_token": id_token, "stage": stage},
+            separators=(",", ":"),
+        ).encode()
+        request = urllib.request.Request(
+            f"{self.base_url}/api/updateMarketplaceJobStageForUser",
+            data=body,
+            headers={**BROWSER_HEADERS, "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with self.urlopen(request, timeout=self.timeout) as response:
+                response.read()
+        except HTTPError as error:
+            raise HireCafeHTTPError("marketplace-stage", error.code, error.reason) from error
+        except (URLError, TimeoutError, OSError) as error:
+            raise HireCafeTransportError("marketplace-stage", error) from error
+
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
         request = Request(url, headers=BROWSER_HEADERS)

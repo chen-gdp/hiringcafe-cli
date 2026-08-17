@@ -60,6 +60,7 @@ hiringcafe auth login --email you@example.com
 printf '%s\n' "$HIRINGCAFE_REFRESH_TOKEN" | hiringcafe auth import
 hiringcafe auth status --json
 hiringcafe saved-jobs list --json
+hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe auth logout
 ```
 
