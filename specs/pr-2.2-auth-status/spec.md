@@ -16,7 +16,7 @@ Verification result: usable. Firebase refresh distinguishes invalid credentials 
 - Detect whether a session file exists.
 - Attempt ID-token refresh when a refresh token exists.
 - Distinguish no credential, rejected/expired credential, and transport failure.
-- Include only nonsecret user metadata when Firebase provides it.
+- Exclude the user ID and every token; emit only authentication state.
 
 ## Exit behavior
 

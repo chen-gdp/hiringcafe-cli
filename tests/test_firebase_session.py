@@ -7,6 +7,7 @@ import stat
 
 from hiringcafe_cli.firebase import FIREBASE_WEB_API_KEY, FirebaseClient
 from hiringcafe_cli.session import SessionStore
+from hiringcafe_cli.test_firebase import BytesResponse
 
 
 def fake_firebase(monkeypatch, response):
@@ -21,21 +22,9 @@ def fake_firebase(monkeypatch, response):
     return calls
 
 
-class BytesResponse(io.BytesIO):
-    """BytesIO context manager shaped like urlopen's response."""
-
-    def __enter__(self):
-        """Return the response body."""
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Close after the request."""
-        self.close()
-
-
 def test_firebase_refresh_exchanges_refresh_token_without_leaking_it(monkeypatch):
     """Condition: refresh succeeds. Expected: metadata and bearer-ready token are returned only in memory."""
-    response = BytesResponse(json.dumps({"idToken": "id", "refreshToken": "refresh", "userId": "uid"}).encode())
+    response = BytesResponse(json.dumps({"id_token": "id", "refresh_token": "refresh", "user_id": "uid"}).encode())
     calls = fake_firebase(monkeypatch, response)
 
     result = FirebaseClient().refresh("refresh-token")
@@ -80,7 +69,9 @@ def test_import_reads_stdin_and_never_accepts_visible_argv(monkeypatch, tmp_path
     """Condition: token arrives on stdin. Expected: owner-only session and no partial credential files."""
     fake_firebase(
         monkeypatch,
-        BytesResponse(json.dumps({"idToken": "id", "refreshToken": "refresh-token", "userId": "uid"}).encode()),
+            BytesResponse(
+                json.dumps({"id_token": "id", "refresh_token": "refresh-token", "user_id": "uid"}).encode()
+            ),
     )
     monkeypatch.setattr("sys.stdin", io.StringIO("refresh-token\n"))
     path = tmp_path / "session.json"

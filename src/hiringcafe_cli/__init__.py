@@ -65,6 +65,9 @@ def build_parser() -> argparse.ArgumentParser:
     auth_login_parser.set_defaults(handler=auth.login_email)
     auth_import_parser = auth_subparsers.add_parser("import", help="import a refresh token")
     auth_import_parser.set_defaults(handler=auth.import_token)
+    auth_status_parser = auth_subparsers.add_parser("status", help="show credential status")
+    auth_status_parser.add_argument("--json", action="store_true")
+    auth_status_parser.set_defaults(handler=auth.status)
     return parser
 
 

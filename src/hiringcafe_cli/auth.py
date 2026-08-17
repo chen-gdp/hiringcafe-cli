@@ -1,6 +1,7 @@
 """Firebase authentication commands."""
 
 import getpass
+import json
 import os
 import sys
 from pathlib import Path
@@ -41,4 +42,33 @@ def login_email(argv: object, json_output: bool = False) -> int:
     del password
     store().save(credentials["refreshToken"])
     print("Authenticated Firebase session saved")
+    return 0
+
+
+def status(argv: object, json_output: bool = False) -> int:
+    """Report whether the stored Firebase credential can obtain an ID token.
+
+    Args:
+        argv: Unused CLI namespace.
+        json_output: Whether stdout must be machine-readable.
+
+    Returns:
+        Exit code 0 when usable, 4 when no session exists.
+    """
+    session = store().load()
+    if session is None:
+        if json_output:
+            print(json.dumps({"version": 1, "authenticated": False}, separators=(",", ":")))
+        else:
+            print("No stored credential", file=sys.stderr)
+        return 4
+    credentials = FirebaseClient().refresh(session.refresh_token)
+    if json_output:
+        payload = json.dumps(
+            {"version": 1, "authenticated": True},
+            separators=(",", ":"),
+        )
+        print(payload)
+    else:
+        print("Authenticated")
     return 0

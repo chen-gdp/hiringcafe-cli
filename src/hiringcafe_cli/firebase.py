@@ -38,9 +38,13 @@ class FirebaseClient:
             f"https://securetoken.googleapis.com/v1/token?{query}",
             body,
         )
-        if "idToken" not in payload or "refreshToken" not in payload:
+        if "id_token" not in payload or "refresh_token" not in payload:
             raise ValueError("Firebase token response is missing required fields")
-        return payload
+        return {
+            "idToken": payload["id_token"],
+            "refreshToken": payload["refresh_token"],
+            "userId": payload.get("user_id"),
+        }
 
     def login_with_password(self, email: str, password: str) -> dict:
         """Exchange Firebase email/password credentials once.
