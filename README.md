@@ -4,7 +4,7 @@ A private, spec-driven Python CLI for [Hiring Cafe](https://hiringcafe.com/) job
 
 ## Status
 
-Documentation and API verification are complete. Implementation has not started.
+PR 0.1 is implemented: the executable bootstrap and exit-code contract are available.
 
 - Product plan and verified endpoint inventory: [`roadmap.md`](roadmap.md)
 - Implementation specifications: [`specs/`](specs/)
@@ -23,9 +23,10 @@ The initial runtime has no third-party dependencies.
 uv sync
 uv run pytest
 uv run hiringcafe --help
+uv run hiringcafe --version
 ```
 
-The CLI entry point is configured. It currently raises `NotImplementedError` because PR 0.1 has not been implemented; useful commands arrive with later roadmap phases.
+Current commands are intentionally limited to `--help` and `--version`; search and auth commands arrive with their roadmap PRs.
 
 ## Repository conventions
 
