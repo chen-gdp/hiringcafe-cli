@@ -9,17 +9,20 @@
 ## Security contract
 
 - Create the parent directory with mode `0700`.
-- Create the temporary token file with mode `0600` at creation time, before secret data is written.
+- Create a private, unpredictable temporary token file in the same directory, then force mode `0600` before writing the secret.
+- Flush and sync the token to disk before atomic replacement.
 - Replace the final session atomically.
 - Keep the final session mode `0600`.
+- Remove the temporary file on write failure.
 - Never make an existing shared configuration root more permissive.
 
 ## Acceptance criteria
 
 - A newly created config directory has mode `0700`.
-- The temporary file is `0600` during the interval when it contains the refresh token.
+- The temporary file is private and `0600` while it contains the refresh token.
 - The final session remains `0600`.
 - Atomic replacement behavior and session JSON format remain unchanged.
+- A failed save does not leave a token-bearing temporary file behind.
 - Existing tests and Ruff checks pass.
 
 ## Traceability

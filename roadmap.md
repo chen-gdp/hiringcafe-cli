@@ -1070,8 +1070,8 @@ Add automated quality gates without changing CLI behavior:
 Close the local session permission race without changing the session format:
 
 - Create new configuration directories with mode `0700`.
-- Create temporary session files with mode `0600` at creation time, before writing the refresh token.
-- Preserve atomic replacement and the final owner-only session mode.
+- Use a private unpredictable temporary file in the session directory, force `0600` before writing the refresh token, and clean it up on failure.
+- Preserve atomic replacement, sync-before-replace, and the final owner-only session mode.
 
 #### Out of scope
 
@@ -1083,4 +1083,5 @@ Close the local session permission race without changing the session format:
 
 - A newly created configuration directory is owner-only.
 - No interval exists where the temporary file containing the refresh token is group/world readable.
+- Failed writes do not leave refresh-token temporary files behind.
 - Existing tests and quality checks pass.

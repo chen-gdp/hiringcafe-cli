@@ -2,6 +2,7 @@
 
 import json
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -52,15 +53,26 @@ class SessionStore:
         if not refresh_token:
             raise ValueError("refresh token must not be empty")
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        temporary = self.path.with_suffix(".tmp")
-        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(
-                {"version": SESSION_VERSION, "refreshToken": refresh_token},
-                output,
-                separators=(",", ":"),
-            )
-        os.replace(temporary, self.path)
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f"{self.path.name}.",
+            suffix=".tmp",
+            dir=self.path.parent,
+        )
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+                os.chmod(temporary, 0o600)
+                json.dump(
+                    {"version": SESSION_VERSION, "refreshToken": refresh_token},
+                    output,
+                    separators=(",", ":"),
+                )
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, self.path)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
 
     def delete(self) -> None:
         """Delete the local session when present."""

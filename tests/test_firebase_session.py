@@ -48,6 +48,22 @@ def test_session_store_writes_owner_only_file_and_loads_session(tmp_path):
     assert store.load().refresh_token == "refresh-token"
 
 
+def test_session_store_cleans_temporary_file_after_write_failure(tmp_path, monkeypatch):
+    """Condition: writing the session fails. Expected: no token-bearing temporary file remains."""
+    path = tmp_path / "private" / "session.json"
+    store = SessionStore(path)
+    monkeypatch.setattr("json.dump", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")))
+
+    try:
+        store.save("refresh-token")
+    except OSError:
+        pass
+    else:
+        raise AssertionError("write failure should propagate")
+
+    assert list(path.parent.iterdir()) == []
+
+
 def test_session_store_missing_file_is_none(tmp_path):
     """Condition: session is absent. Expected: no credential and no fabricated session."""
     assert SessionStore(tmp_path / "session.json").load() is None
