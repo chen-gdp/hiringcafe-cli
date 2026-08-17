@@ -62,6 +62,8 @@ hiringcafe auth status --json
 hiringcafe auth logout
 ```
 
+Saved-job commands are implemented in stacked roadmap PRs through PR 3.5.
+
 Normal tests never access the network. Current commands are intentionally limited to `--help`,
 `--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
 
