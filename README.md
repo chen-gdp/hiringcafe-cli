@@ -4,8 +4,8 @@ A private, spec-driven Python CLI for [Hiring Cafe](https://hiringcafe.com/) job
 
 ## Status
 
-PRs 0.1 and 0.2 are implemented: executable bootstrap, exit-code contract, offline SSR parser coverage,
-and an explicitly opt-in live probe.
+PR 0.2 and PR 1.1 are implemented: executable bootstrap, exit-code contract, offline SSR parser coverage,
+an explicitly opt-in live probe, and the shared anonymous HTTP/SSR client.
 
 - Product plan and verified endpoint inventory: [`roadmap.md`](roadmap.md)
 - Implementation specifications: [`specs/`](specs/)
