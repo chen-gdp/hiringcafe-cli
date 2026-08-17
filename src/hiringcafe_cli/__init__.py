@@ -4,6 +4,8 @@ import argparse
 import sys
 
 from hiringcafe_cli import probe
+from hiringcafe_cli import search
+from hiringcafe_cli.search_state import InvalidSearchState
 
 __version__ = "0.1.0"
 
@@ -35,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     probe_parser = subparsers.add_parser("probe", help="run the opt-in live endpoint probe")
     probe_parser.set_defaults(handler=probe.main)
+    search_parser = subparsers.add_parser("search", help="search jobs")
+    search_parser.add_argument("query", nargs="?", default="")
+    search_parser.add_argument("--page", type=int, default=0)
+    search_parser.add_argument("--raw-search-state")
+    search_parser.add_argument("--json", action="store_true")
+    search_parser.set_defaults(handler=search.run)
     return parser
 
 
@@ -47,4 +55,12 @@ def main(argv: list[str] | None = None) -> None:
     arguments = build_parser().parse_args(argv)
     handler = getattr(arguments, "handler", None)
     if handler is not None:
-        raise SystemExit(handler([]))
+        json_output = getattr(arguments, "json", False)
+        try:
+            raise SystemExit(handler(arguments, json_output))
+        except InvalidSearchState as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(2) from error
+        except ValueError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
