@@ -12,9 +12,15 @@ def test_count_default_prints_one_integer(monkeypatch, capsys):
         def search_page(self, state, page):
             assert state == {"searchQuery": "python"}
             assert page == 0
-            return {"ssrTotalCount": 17}
+            return {
+                "ssrHits": [],
+                "ssrTotalCount": 17,
+                "ssrPage": 0,
+                "ssrPageSize": 40,
+                "ssrIsLastPage": True,
+            }
 
-    monkeypatch.setattr("hiringcafe_cli.count.WebClient", lambda: FakeClient())
+    monkeypatch.setattr("hiringcafe_cli.search.WebClient", lambda: FakeClient())
     try:
         main(["count", "python"])
     except SystemExit as error:
@@ -29,9 +35,16 @@ def test_count_json_includes_request_and_count(monkeypatch, capsys):
 
     class FakeClient:
         def search_page(self, state, page):
-            return {"ssr_total_count_unused": True, "ssrTotalCount": 3}
+            return {
+                "ssrHits": [],
+                "ssr_total_count_unused": True,
+                "ssrTotalCount": 3,
+                "ssrPage": 0,
+                "ssrPageSize": 40,
+                "ssrIsLastPage": True,
+            }
 
-    monkeypatch.setattr("hiringcafe_cli.count.WebClient", lambda: FakeClient())
+    monkeypatch.setattr("hiringcafe_cli.search.WebClient", lambda: FakeClient())
     try:
         main(["count", "python", "--json"])
     except SystemExit as error:
@@ -49,7 +62,7 @@ def test_count_missing_total_is_api_failure(monkeypatch, capsys):
         def search_page(self, state, page):
             return {}
 
-    monkeypatch.setattr("hiringcafe_cli.count.WebClient", lambda: FakeClient())
+    monkeypatch.setattr("hiringcafe_cli.search.WebClient", lambda: FakeClient())
     try:
         main(["count", "python"])
     except SystemExit as error:

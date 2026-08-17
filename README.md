@@ -66,6 +66,8 @@ hiringcafe saved-jobs remove <objectID> --yes
 hiringcafe search "python developer" --pages 3 --jsonl
 
 Anonymous search and job-detail GETs retry transport failures, HTTP 408/429, and 5xx twice with bounded jittered backoff. Authenticated mutations never retry.
+
+Anonymous search/count (15-minute TTL) and job detail (24-hour TTL) responses use an owner-only local cache. Use `--no-cache` to bypass it, `--cache-ttl <seconds>` to override it for one command, or run `hiringcafe cache purge`.
 hiringcafe auth logout
 ```
 

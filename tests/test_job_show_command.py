@@ -58,7 +58,9 @@ def test_job_show_empty_job_object_is_api_failure(monkeypatch, capsys):
 
     class FakeClient:
         def job_description(self, object_id):
-            return {}
+                return {}
+
+    monkeypatch.setenv("HIRINGCAFE_CACHE_HOME", "/tmp/hiringcafe-empty-cache-test")
 
     monkeypatch.setattr("hiringcafe_cli.job.WebClient", lambda: FakeClient())
     try:

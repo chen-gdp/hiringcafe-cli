@@ -1,12 +1,16 @@
 """Anonymous job-description command."""
 
 import json
+import os
 import sys
 
 from hiringcafe_cli.http_client import WebClient
+from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
+
+JOB_TTL = 86400
 
 
-def show(object_id: str) -> dict:
+def show(object_id: str, no_cache: bool = False, cache_ttl: int | None = None) -> dict:
     """Fetch and normalize a job description.
 
     Args:
@@ -15,7 +19,16 @@ def show(object_id: str) -> dict:
     Returns:
         Stable version-1 job-detail envelope.
     """
-    job = WebClient().job_description(object_id)
+    cache_root = active_cache_root()
+    key = ("job", "https://hiringcafe.com", object_id)
+    ttl = JOB_TTL if cache_ttl is None else cache_ttl
+    enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
+    raw = cache_read(key, ttl, cache_root, enabled=enabled)
+    if raw is not None:
+        job = raw
+    else:
+        job = WebClient().job_description(object_id)
+        cache_write(key, job, ttl, cache_root, enabled=enabled)
     if not job:
         raise ValueError("job-description response has no job object")
     information = job.get("job_information") or {}
@@ -36,7 +49,11 @@ def run(argv: object, json_output: bool) -> int:
     if not argv.object_id:
         print("hiringcafe: object ID must not be empty", file=sys.stderr)
         return 2
-    envelope = show(argv.object_id)
+    envelope = show(
+        argv.object_id,
+        no_cache=getattr(argv, "no_cache", False),
+        cache_ttl=getattr(argv, "cache_ttl", None),
+    )
     if json_output:
         print(json.dumps(envelope, separators=(",", ":")))
     else:
