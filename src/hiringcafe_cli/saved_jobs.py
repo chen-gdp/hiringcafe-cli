@@ -95,5 +95,7 @@ def encode_firestore_value(value):
     if isinstance(value, dict):
         if set(value) == {"arrayValue"}:
             return value
+        if set(value) == {"appendMissingElements"}:
+            return {"arrayValue": value}
         return {"mapValue": {"fields": {key: encode_firestore_value(item) for key, item in value.items()}}}
     raise SavedJobError(f"unsupported Firestore value: {type(value).__name__}")

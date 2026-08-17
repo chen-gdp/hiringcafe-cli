@@ -122,7 +122,7 @@ class FirestoreClient:
         fields = {key: encode_firestore_value(value) for key, value in values.items() if value is not None}
         mask = "&".join(f"updateMask.fieldPaths={key}" for key in fields)
         body = json.dumps({"fields": fields}, separators=(",", ":")).encode()
-        return self._request("PATCH", f"{document_id}?currentDocument.exists=false&{mask}", body)
+        return self._request("PATCH", f"{document_id}?{mask}", body)
 
 
 def run(argv, json_output: bool = False) -> int:

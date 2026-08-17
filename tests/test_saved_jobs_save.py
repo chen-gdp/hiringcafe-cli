@@ -6,6 +6,7 @@ import urllib.error
 from hiringcafe_cli import saved_jobs_save
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
 from hiringcafe_cli.session import SessionStore
+from hiringcafe_cli.firebase import FirebaseAuthError
 
 
 class BytesResponse:
@@ -61,6 +62,22 @@ def test_save_requires_a_session(tmp_path, monkeypatch):
         assert saved_jobs_save.run(args()) == 4
 
 
+def test_save_rejected_credential_exits_five(tmp_path, monkeypatch):
+    """Condition: Firebase rejects the stored refresh token.
+
+    Expected: save exits 5 before hydration or mutation.
+    """
+    authenticate(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        saved_jobs_save.FirebaseClient,
+        "refresh",
+        lambda *_: (_ for _ in ()).throw(FirebaseAuthError("rejected")),
+    )
+    monkeypatch.setattr(saved_jobs_save.WebClient, "job_description", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    with contextlib.redirect_stderr(io.StringIO()):
+        assert saved_jobs_save.run(args()) == 5
+
+
 def test_save_hydrates_writes_firestore_then_marketplace(tmp_path, monkeypatch):
     """Condition: a valid job is saved for the first time.
 
@@ -113,10 +130,26 @@ def test_save_hydrates_writes_firestore_then_marketplace(tmp_path, monkeypatch):
     assert values["counted_milestones"] == {}
     assert values["job_information"] == {"title": "Engineer"}
     assert "userTrackingArray" not in values["job_information"]
-    assert values["stageHistory"] == {"arrayValue": {"values": [{"stage": "saved", "at": values["dateSaved"]}]}}
+    assert values["stageHistory"] == {"appendMissingElements": [{"stage": "saved", "at": values["dateSaved"]}]}
     assert calls[2][0] == "POST"
     assert json.loads(calls[2][2]) == {"job_id": "job-id", "user_token": "id-token", "stage": "saved"}
     assert "id-token" not in output.getvalue()
+
+
+def test_save_skips_marketplace_for_imported_jobs(tmp_path, monkeypatch):
+    """Condition: hydrated job has source import.
+
+    Expected: marketplace stage sync is skipped.
+    """
+    authenticate(tmp_path, monkeypatch)
+    monkeypatch.setattr(saved_jobs_save.FirestoreClient, "save", lambda *_: BytesResponse())
+    monkeypatch.setattr(
+        saved_jobs_save.WebClient, "job_description", lambda self, object_id: {"objectID": object_id, "source": "import"}
+    )
+    monkeypatch.setattr(
+        saved_jobs_save.WebClient, "marketplace_stage", lambda *_: (_ for _ in ()).throw(AssertionError())
+    )
+    assert saved_jobs_save.run(args()) == 0
 
 
 def test_save_reports_marketplace_partial_failure(tmp_path, monkeypatch):

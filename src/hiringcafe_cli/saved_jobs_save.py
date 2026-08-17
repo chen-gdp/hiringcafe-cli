@@ -4,7 +4,7 @@ import sys
 from datetime import datetime, timezone
 
 from hiringcafe_cli.auth import store
-from hiringcafe_cli.firebase import FirebaseClient
+from hiringcafe_cli.firebase import FirebaseClient, FirebaseAuthError
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
@@ -28,12 +28,13 @@ def save(object_id: str, stage: str) -> None:
         "owner": credentials["userId"],
         "dateSaved": saved_at,
         "stage": stage,
-        "stageHistory": {"arrayValue": {"values": [{"stage": stage, "at": saved_at}]}},
+        "stageHistory": {"appendMissingElements": [{"stage": stage, "at": saved_at}]},
         "counted_milestones": {},
         **_clean_job(hydrated),
     }
     FirestoreClient(credentials["idToken"]).save(f"{credentials['userId']}_{object_id}", values)
-    WebClient().marketplace_stage(object_id, credentials["idToken"], stage)
+    if hydrated.get("source") != "import":
+        WebClient().marketplace_stage(object_id, credentials["idToken"], stage)
 
 
 def run(argv, json_output: bool = False) -> int:
@@ -48,6 +49,9 @@ def run(argv, json_output: bool = False) -> int:
         return 4
     try:
         save(object_id, argv.stage)
+    except FirebaseAuthError as error:
+        print(f"hiringcafe: {error}", file=sys.stderr)
+        return 5
     except Exception as error:
         print(f"hiringcafe: save completed partially: {error}", file=sys.stderr)
         return 1
