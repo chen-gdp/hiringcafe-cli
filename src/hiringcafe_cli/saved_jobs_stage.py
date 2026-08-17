@@ -4,7 +4,7 @@ import sys
 from datetime import datetime, timezone
 
 from hiringcafe_cli.auth import store
-from hiringcafe_cli.firebase import FirebaseClient
+from hiringcafe_cli.firebase import FirebaseClient, FirebaseAuthError
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.saved_jobs import VALID_STAGES, decode_firestore_fields
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
@@ -28,7 +28,7 @@ def change_stage(object_id: str, stage: str) -> None:
     values = {
         "stage": stage,
         "dateSaved": saved_at,
-        "stageHistory": {"arrayValue": {"values": [{"stage": stage, "at": saved_at}]}},
+        "stageHistory": {"appendMissingElements": [{"stage": stage, "at": saved_at}]},
     }
     if fields.get("firstSavedAt") is None:
         values["firstSavedAt"] = fields.get("dateSaved", saved_at)
@@ -49,6 +49,9 @@ def run(argv, json_output: bool = False) -> int:
         return 4
     try:
         change_stage(object_id, argv.stage)
+    except FirebaseAuthError as error:
+        print(f"hiringcafe: {error}", file=sys.stderr)
+        return 5
     except LookupError as error:
         print(f"hiringcafe: {error}", file=sys.stderr)
         return 6

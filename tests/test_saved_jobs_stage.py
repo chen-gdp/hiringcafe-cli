@@ -4,6 +4,7 @@ import json
 
 from hiringcafe_cli import saved_jobs_stage
 from hiringcafe_cli.session import SessionStore
+from hiringcafe_cli.firebase import FirebaseAuthError
 
 
 class BytesResponse:
@@ -73,6 +74,22 @@ def test_stage_unknown_job_exits_six(tmp_path, monkeypatch):
         assert saved_jobs_stage.run(args()) == 6
 
 
+def test_stage_rejected_credential_exits_five(tmp_path, monkeypatch):
+    """Condition: Firebase rejects the stored refresh token.
+
+    Expected: stage exits 5 before Firestore or marketplace use.
+    """
+    authenticate(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        saved_jobs_stage.FirebaseClient,
+        "refresh",
+        lambda *_: (_ for _ in ()).throw(FirebaseAuthError("rejected")),
+    )
+    monkeypatch.setattr(saved_jobs_stage.FirestoreClient, "get", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    with contextlib.redirect_stderr(io.StringIO()):
+        assert saved_jobs_stage.run(args()) == 5
+
+
 def test_stage_orders_marketplace_firestore_then_old_list_cleanup(tmp_path, monkeypatch):
     """Condition: saved job moves from saved to interviewing without firstSavedAt.
 
@@ -101,7 +118,7 @@ def test_stage_orders_marketplace_firestore_then_old_list_cleanup(tmp_path, monk
     document_id, values = calls[1][1:]
     assert document_id == "uid_job-id"
     assert values["stage"] == "interviewing"
-    assert values["stageHistory"] == {"arrayValue": {"values": [{"stage": "interviewing", "at": values["dateSaved"]}]}}
+    assert values["stageHistory"] == {"appendMissingElements": [{"stage": "interviewing", "at": values["dateSaved"]}]}
     assert values["firstSavedAt"] == "2024-01-01T00:00:00Z"
     assert calls[2] == ("remove", "job-id", "id-token", "saved")
 
