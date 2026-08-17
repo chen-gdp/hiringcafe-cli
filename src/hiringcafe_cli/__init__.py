@@ -11,6 +11,7 @@ from hiringcafe_cli import auth
 from hiringcafe_cli import saved_jobs_list
 from hiringcafe_cli import saved_jobs_save
 from hiringcafe_cli import saved_jobs_stage
+from hiringcafe_cli import saved_jobs_remove
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
@@ -89,6 +90,10 @@ def build_parser() -> argparse.ArgumentParser:
     saved_stage_parser.add_argument("object_id")
     saved_stage_parser.add_argument("--stage", required=True)
     saved_stage_parser.set_defaults(handler=saved_jobs_stage.run)
+    saved_remove_parser = saved_subparsers.add_parser("remove", help="remove a saved job")
+    saved_remove_parser.add_argument("object_id")
+    saved_remove_parser.add_argument("--yes", action="store_true")
+    saved_remove_parser.set_defaults(handler=saved_jobs_remove.run)
     return parser
 
 

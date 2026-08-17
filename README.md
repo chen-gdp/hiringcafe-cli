@@ -62,6 +62,7 @@ hiringcafe auth status --json
 hiringcafe saved-jobs list --json
 hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe saved-jobs stage <objectID> --stage interviewing
+hiringcafe saved-jobs remove <objectID> --yes
 hiringcafe auth logout
 ```
 
