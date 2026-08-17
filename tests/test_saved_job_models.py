@@ -38,9 +38,9 @@ def test_normalize_saved_job_converts_timestamps_and_preserves_history():
 
     assert result == {
         "id": "job-one",
-        "savedAt": "2026-08-17T01:02:03+00:00",
+        "savedAt": "2026-08-17T01:02:03Z",
         "stage": "applied",
-        "stageHistory": [{"stage": "saved", "at": "2026-08-17T01:02:03+00:00"}],
+        "stageHistory": [{"stage": "saved", "at": "2026-08-17T01:02:03Z"}],
         "hidden": False,
         "documentId": "owner-one_job-one",
         "title": "Engineer",
