@@ -48,7 +48,7 @@ def search(query: str, page: int, raw_search_state: str | None = None) -> dict:
         Stable version-1 search envelope.
     """
     state = build_search_state(query=query, raw_search_state=raw_search_state)
-    properties = WebClient().search_page(state, page)
+    properties = fetch_page(state, page)
     if properties.get("ssrError") is not None:
         raise ValueError(f"HiringCafe search error: {properties['ssrError']}")
     jobs = [normalize_job(hit) for hit in properties["ssrHits"]]
@@ -66,10 +66,43 @@ def search(query: str, page: int, raw_search_state: str | None = None) -> dict:
     }
 
 
+def fetch_page(state: dict, page: int) -> dict:
+    """Fetch and validate one raw SSR page."""
+    return WebClient().search_page(state, page)
+
+
+def search_pages(query: str, pages: int, raw_search_state: str | None = None) -> list[dict]:
+    """Fetch sequential pages and return normalized jobs in source order."""
+    if pages < 1:
+        raise InvalidSearchState("pages must be positive")
+    state = build_search_state(query=query, raw_search_state=raw_search_state)
+    jobs = []
+    seen = set()
+    for page in range(pages):
+        properties = fetch_page(state, page)
+        if properties.get("ssrError") is not None:
+            raise ValueError(f"HiringCafe search error: {properties['ssrError']}")
+        for hit in properties["ssrHits"]:
+            job = normalize_job(hit)
+            if job["id"] in seen:
+                raise ValueError(f"duplicate objectID across search pages: {job['id']}")
+            seen.add(job["id"])
+            jobs.append(job)
+        if properties["ssrIsLastPage"]:
+            break
+    return jobs
+
+
 def run(argv: list[str], json_output: bool) -> int:
     """Execute search with CLI arguments."""
     if argv.page < 0:
         raise InvalidSearchState("page must be nonnegative")
+    if getattr(argv, "pages", 1) < 1:
+        raise InvalidSearchState("pages must be positive")
+    if getattr(argv, "jsonl", False):
+        for job in search_pages(argv.query, argv.pages, argv.raw_search_state):
+            print(json.dumps(job, separators=(",", ":")))
+        return 0
     envelope = search(argv.query, argv.page, argv.raw_search_state)
     if json_output:
         print(json.dumps(envelope, separators=(",", ":")))
