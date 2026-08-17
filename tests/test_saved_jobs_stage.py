@@ -3,8 +3,8 @@ import io
 import json
 
 from hiringcafe_cli import saved_jobs_stage
-from hiringcafe_cli.session import SessionStore
 from hiringcafe_cli.firebase import FirebaseAuthError
+from hiringcafe_cli.session import SessionStore
 
 
 class BytesResponse:
@@ -77,7 +77,7 @@ def test_stage_unknown_job_exits_six(tmp_path, monkeypatch):
 def test_stage_rejected_credential_exits_five(tmp_path, monkeypatch):
     """Condition: Firebase rejects the stored refresh token.
 
-    Expected: stage exits 5 before Firestore or marketplace use.
+    Expected: stage exits 5 before Firestore or marketplace mutation.
     """
     authenticate(tmp_path, monkeypatch)
     monkeypatch.setattr(

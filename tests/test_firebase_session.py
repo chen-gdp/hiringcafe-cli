@@ -4,10 +4,10 @@ import io
 import json
 import os
 import stat
+from firebase_doubles import BytesResponse
 
 from hiringcafe_cli.firebase import FIREBASE_WEB_API_KEY, FirebaseClient
 from hiringcafe_cli.session import SessionStore
-from hiringcafe_cli.test_firebase import BytesResponse
 
 
 def fake_firebase(monkeypatch, response):

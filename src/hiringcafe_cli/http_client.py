@@ -171,6 +171,13 @@ class WebClient:
             {"job_id": object_id, "user_token": id_token, "stage": stage, "should_delete": False},
         )
 
+    def remove_job(self, object_id: str, id_token: str, stage: str) -> None:
+        """Delete a job through the marketplace owner endpoint."""
+        self.marketplace_mutation(
+            "removeJobFromList",
+            {"job_id": object_id, "user_token": id_token, "stage": stage, "should_delete": True},
+        )
+
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
         request = Request(url, headers=BROWSER_HEADERS)
