@@ -40,6 +40,13 @@ uv run hiringcafe search "python developer" --page 0 --json
 uv run hiringcafe search --raw-search-state '{"searchQuery":"python developer"}' --json
 ```
 
+Count matching jobs:
+
+```bash
+uv run hiringcafe count "python developer"
+uv run hiringcafe count "python developer" --json
+```
+
 Normal tests never access the network. Current commands are intentionally limited to `--help`,
 `--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
 

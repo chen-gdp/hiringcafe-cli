@@ -5,6 +5,7 @@ import sys
 
 from hiringcafe_cli import probe
 from hiringcafe_cli import search
+from hiringcafe_cli import count
 from hiringcafe_cli.search_state import InvalidSearchState
 
 __version__ = "0.1.0"
@@ -43,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--raw-search-state")
     search_parser.add_argument("--json", action="store_true")
     search_parser.set_defaults(handler=search.run)
+    count_parser = subparsers.add_parser("count", help="print total result count")
+    count_parser.add_argument("query", nargs="?", default="")
+    count_parser.add_argument("--raw-search-state")
+    count_parser.add_argument("--json", action="store_true")
+    count_parser.set_defaults(handler=count.run)
     return parser
 
 
