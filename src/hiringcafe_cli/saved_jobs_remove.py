@@ -3,7 +3,7 @@
 import sys
 
 from hiringcafe_cli.auth import store
-from hiringcafe_cli.firebase import FirebaseClient
+from hiringcafe_cli.firebase import FirebaseClient, FirebaseAuthError
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.saved_jobs import decode_firestore_fields
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
@@ -35,6 +35,9 @@ def run(argv, json_output: bool = False) -> int:
         return 4
     try:
         remove(object_id)
+    except FirebaseAuthError as error:
+        print(f"hiringcafe: {error}", file=sys.stderr)
+        return 5
     except LookupError as error:
         print(f"hiringcafe: {error}", file=sys.stderr)
         return 6

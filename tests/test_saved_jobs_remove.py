@@ -3,6 +3,7 @@ import io
 
 from hiringcafe_cli import saved_jobs_remove
 from hiringcafe_cli.session import SessionStore
+from hiringcafe_cli.firebase import FirebaseAuthError
 
 
 class BytesResponse:
@@ -57,6 +58,22 @@ def test_remove_unknown_job_exits_six(tmp_path, monkeypatch):
     monkeypatch.setattr(saved_jobs_remove.WebClient, "remove_job", lambda *_: (_ for _ in ()).throw(AssertionError()))
     with contextlib.redirect_stderr(io.StringIO()):
         assert saved_jobs_remove.run(args(yes=True)) == 6
+
+
+def test_remove_rejected_credential_exits_five(tmp_path, monkeypatch):
+    """Condition: Firebase rejects the stored refresh token.
+
+    Expected: remove exits 5 before Firestore or marketplace use.
+    """
+    authenticate(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        saved_jobs_remove.FirebaseClient,
+        "refresh",
+        lambda *_: (_ for _ in ()).throw(FirebaseAuthError("rejected")),
+    )
+    monkeypatch.setattr(saved_jobs_remove.FirestoreClient, "get", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    with contextlib.redirect_stderr(io.StringIO()):
+        assert saved_jobs_remove.run(args(yes=True)) == 5
 
 
 def test_remove_reads_stage_then_calls_marketplace_delete(tmp_path, monkeypatch):
