@@ -4,8 +4,7 @@ A private, spec-driven Python CLI for [Hiring Cafe](https://hiringcafe.com/) job
 
 ## Status
 
-PRs 0.2 through 1.2 are implemented: executable bootstrap, exit-code contract, offline SSR parser coverage,
-an explicitly opt-in live probe, shared anonymous HTTP/SSR client, and verified search-state contract.
+Roadmap PRs 0.1 through 5.1 are implemented as a draft stack. PR 2.3 (browser OAuth flow) remains intentionally deferred until its route is verified.
 
 - Product plan and verified endpoint inventory: [`roadmap.md`](roadmap.md)
 - Implementation specifications: [`specs/`](specs/)
@@ -64,15 +63,13 @@ hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe saved-jobs stage <objectID> --stage interviewing
 hiringcafe saved-jobs remove <objectID> --yes
 hiringcafe search "python developer" --pages 3 --jsonl
+hiringcafe auth logout
 
 Anonymous search and job-detail GETs retry transport failures, HTTP 408/429, and 5xx twice with bounded jittered backoff. Authenticated mutations never retry.
-hiringcafe auth logout
-```
 
-Saved-job commands are implemented in stacked roadmap PRs through PR 3.5.
+Anonymous search/count (15-minute TTL) and job detail (24-hour TTL) responses use an owner-only local cache. Use `--no-cache` to bypass it, `--cache-ttl <seconds>` to override it for one command, or run `hiringcafe cache purge`.
 
-Normal tests never access the network. Current commands are intentionally limited to `--help`,
-`--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
+Normal tests never access the network.
 
 ## Repository conventions
 

@@ -12,11 +12,14 @@ from hiringcafe_cli import saved_jobs_list
 from hiringcafe_cli import saved_jobs_save
 from hiringcafe_cli import saved_jobs_stage
 from hiringcafe_cli import saved_jobs_remove
+from hiringcafe_cli.cache import CacheStore, active_cache_root
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.http_client import HireCafeHTTPError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
+from hiringcafe_cli.search import SEARCH_TTL
+from hiringcafe_cli.job import JOB_TTL
 
 __version__ = "0.1.0"
 
@@ -45,10 +48,13 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    cache_options = argparse.ArgumentParser(add_help=False)
+    cache_options.add_argument("--no-cache", action="store_true")
+    cache_options.add_argument("--cache-ttl", type=int)
     subparsers = parser.add_subparsers(dest="command")
     probe_parser = subparsers.add_parser("probe", help="run the opt-in live endpoint probe")
     probe_parser.set_defaults(handler=probe.main)
-    search_parser = subparsers.add_parser("search", help="search jobs")
+    search_parser = subparsers.add_parser("search", help="search jobs", parents=[cache_options])
     search_parser.add_argument("query", nargs="?", default="")
     search_parser.add_argument("--page", type=int, default=0)
     search_parser.add_argument("--pages", type=int, default=1)
@@ -56,14 +62,14 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--json", action="store_true")
     search_parser.add_argument("--jsonl", action="store_true")
     search_parser.set_defaults(handler=search.run)
-    count_parser = subparsers.add_parser("count", help="print total result count")
+    count_parser = subparsers.add_parser("count", help="print total result count", parents=[cache_options])
     count_parser.add_argument("query", nargs="?", default="")
     count_parser.add_argument("--raw-search-state")
     count_parser.add_argument("--json", action="store_true")
     count_parser.set_defaults(handler=count.run)
     job_parser = subparsers.add_parser("job", help="inspect job details")
     job_subparsers = job_parser.add_subparsers(dest="job_command", required=True)
-    job_show_parser = job_subparsers.add_parser("show", help="show a job description")
+    job_show_parser = job_subparsers.add_parser("show", help="show a job description", parents=[cache_options])
     job_show_parser.add_argument("object_id")
     job_show_parser.add_argument("--json", action="store_true")
     job_show_parser.set_defaults(handler=job.run)
@@ -97,7 +103,18 @@ def build_parser() -> argparse.ArgumentParser:
     saved_remove_parser.add_argument("object_id")
     saved_remove_parser.add_argument("--yes", action="store_true")
     saved_remove_parser.set_defaults(handler=saved_jobs_remove.run)
+    cache_parser = subparsers.add_parser("cache", help="manage anonymous read cache")
+    cache_subparsers = cache_parser.add_subparsers(dest="cache_command", required=True)
+    cache_purge_parser = cache_subparsers.add_parser("purge", help="remove cached anonymous reads")
+    cache_purge_parser.set_defaults(handler=cache_purge)
     return parser
+
+
+def cache_purge(argv=None, json_output: bool = False) -> int:
+    """Purge all anonymous cache files."""
+    CacheStore(active_cache_root()).purge()
+    print("Cache purged")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> None:

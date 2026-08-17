@@ -1,10 +1,15 @@
 """Anonymous search command and normalized output contract."""
 
 import json
+import os
 import sys
+from pathlib import Path
 
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.search_state import InvalidSearchState, build_search_state
+from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
+
+SEARCH_TTL = 900
 
 
 def normalize_job(hit: dict) -> dict:
@@ -36,7 +41,13 @@ def normalize_job(hit: dict) -> dict:
     }
 
 
-def search(query: str, page: int, raw_search_state: str | None = None) -> dict:
+def search(
+    query: str,
+    page: int,
+    raw_search_state: str | None = None,
+    no_cache: bool = False,
+    cache_ttl: int | None = None,
+) -> dict:
     """Fetch and normalize one search page.
 
     Args:
@@ -48,11 +59,21 @@ def search(query: str, page: int, raw_search_state: str | None = None) -> dict:
         Stable version-1 search envelope.
     """
     state = build_search_state(query=query, raw_search_state=raw_search_state)
+    cache_root = active_cache_root()
+    key = ("search", "https://hiringcafe.com", json.dumps(state, sort_keys=True), page)
+    enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
+    ttl = SEARCH_TTL if cache_ttl is None else cache_ttl
+    cached = cache_read(key, ttl, cache_root, enabled=enabled)
+    if cached is not None:
+        return cached
     properties = fetch_page(state, page)
     if properties.get("ssrError") is not None:
         raise ValueError(f"HiringCafe search error: {properties['ssrError']}")
-    jobs = [normalize_job(hit) for hit in properties["ssrHits"]]
-    return {
+    hits = properties.get("ssrHits")
+    if not isinstance(hits, list):
+        raise ValueError("ssrHits is missing or invalid")
+    jobs = [normalize_job(hit) for hit in hits]
+    envelope = {
         "version": 1,
         "query": {"searchState": state, "page": page},
         "result": {
@@ -64,6 +85,8 @@ def search(query: str, page: int, raw_search_state: str | None = None) -> dict:
             "jobs": jobs,
         },
     }
+    cache_write(key, envelope, ttl, cache_root, enabled=enabled)
+    return envelope
 
 
 def fetch_page(state: dict, page: int) -> dict:
@@ -103,7 +126,13 @@ def run(argv: list[str], json_output: bool) -> int:
         for job in search_pages(argv.query, argv.pages, argv.raw_search_state):
             print(json.dumps(job, separators=(",", ":")))
         return 0
-    envelope = search(argv.query, argv.page, argv.raw_search_state)
+    envelope = search(
+        argv.query,
+        argv.page,
+        argv.raw_search_state,
+        no_cache=getattr(argv, "no_cache", False),
+        cache_ttl=getattr(argv, "cache_ttl", None),
+    )
     if json_output:
         print(json.dumps(envelope, separators=(",", ":")))
     else:

@@ -2,11 +2,10 @@
 
 import json
 
-from hiringcafe_cli.http_client import WebClient
-from hiringcafe_cli.search_state import build_search_state
+from hiringcafe_cli.search import search
 
 
-def count(query: str, raw_search_state: str | None = None) -> dict:
+def count(query: str, raw_search_state: str | None = None, no_cache: bool = False, cache_ttl: int | None = None) -> dict:
     """Count results by requesting page zero.
 
     Args:
@@ -16,17 +15,19 @@ def count(query: str, raw_search_state: str | None = None) -> dict:
     Returns:
         Stable count envelope.
     """
-    state = build_search_state(query=query, raw_search_state=raw_search_state)
-    properties = WebClient().search_page(state, 0)
-    total_count = properties.get("ssrTotalCount")
-    if not isinstance(total_count, int):
-        raise ValueError("ssrTotalCount is missing or invalid")
-    return {"version": 1, "query": {"searchState": state, "page": 0}, "count": total_count}
+    envelope = search(query, 0, raw_search_state, no_cache=no_cache, cache_ttl=cache_ttl)
+    total_count = envelope["result"]["totalCount"]
+    return {"version": 1, "query": envelope["query"], "count": total_count}
 
 
 def run(argv: object, json_output: bool) -> int:
     """Execute count with CLI arguments."""
-    envelope = count(argv.query, argv.raw_search_state)
+    envelope = count(
+        argv.query,
+        argv.raw_search_state,
+        no_cache=getattr(argv, "no_cache", False),
+        cache_ttl=getattr(argv, "cache_ttl", None),
+    )
     if json_output:
         print(json.dumps(envelope, separators=(",", ":")))
     else:
