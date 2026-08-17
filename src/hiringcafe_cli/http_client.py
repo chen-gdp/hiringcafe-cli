@@ -122,7 +122,11 @@ class WebClient:
             The response's ``job`` object.
         """
         query = urllib.parse.urlencode({"id": object_id})
-        return self._json(self._get(f"{self.base_url}/api/job-description?{query}", "job-description"))
+        payload = self._json(self._get(f"{self.base_url}/api/job-description?{query}", "job-description"))
+        job = payload.get("job")
+        if not isinstance(job, dict):
+            raise ValueError("job-description response has no job object")
+        return job
 
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
