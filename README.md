@@ -105,6 +105,7 @@ Anonymous GETs retry transport failures, HTTP 408/429, and 5xx twice with bounde
 uv sync
 uv run pytest
 uv run hiringcafe --help
+uv run pre-commit run --all-files
 ```
 
 Normal tests do not access the network. Run the verified anonymous endpoint probe explicitly:

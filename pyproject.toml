@@ -26,7 +26,11 @@ Issues = "https://github.com/chen-gdp/hiringcafe-cli/issues"
 Changelog = "https://github.com/chen-gdp/hiringcafe-cli/blob/main/CHANGELOG.md"
 
 [dependency-groups]
-dev = ["pytest>=9.0.0"]
+dev = [
+    "pre-commit>=4.3.0",
+    "pytest>=9.0.0",
+    "ruff>=0.14.0",
+]
 
 [project.scripts]
 hiringcafe = "hiringcafe_cli:main"
@@ -34,3 +38,22 @@ hiringcafe = "hiringcafe_cli:main"
 [build-system]
 requires = ["uv_build>=0.11.16,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = [".venv", "dist", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = [
+    "S310", # all transport URLs are fixed HTTPS constants or verified site URLs
+    "S311", # random jitter is for retry timing, not cryptography
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101", # assertions are the project's test contract
+    "S105", # synthetic credential names in isolated tests
+    "S106", # synthetic credential values in isolated tests
+]

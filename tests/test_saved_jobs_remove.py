@@ -2,8 +2,8 @@ import contextlib
 import io
 
 from hiringcafe_cli import saved_jobs_remove
-from hiringcafe_cli.session import SessionStore
 from hiringcafe_cli.firebase import FirebaseAuthError
+from hiringcafe_cli.session import SessionStore
 
 
 class BytesResponse:
@@ -40,9 +40,7 @@ def test_remove_requires_confirmation_before_any_network(tmp_path, monkeypatch):
     """
     monkeypatch.setenv("HIRINGCAFE_CONFIG_HOME", str(tmp_path))
     monkeypatch.setattr(saved_jobs_remove.FirebaseClient, "refresh", lambda *_: (_ for _ in ()).throw(AssertionError()))
-    monkeypatch.setattr(
-        saved_jobs_remove.WebClient, "remove_job", lambda *_: (_ for _ in ()).throw(AssertionError())
-    )
+    monkeypatch.setattr(saved_jobs_remove.WebClient, "remove_job", lambda *_: (_ for _ in ()).throw(AssertionError()))
     monkeypatch.setattr("sys.stdin", io.StringIO("no\n"))
     with contextlib.redirect_stderr(io.StringIO()):
         assert saved_jobs_remove.run(args()) == 2

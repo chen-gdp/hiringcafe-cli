@@ -32,9 +32,7 @@ def test_live_probe_reports_safe_page_and_detail_results(monkeypatch):
                 }
             }
         }
-        pages.append(
-            f'<html><script id="__NEXT_DATA__">{json.dumps(payload)}</script></html>'.encode()
-        )
+        pages.append(f'<html><script id="__NEXT_DATA__">{json.dumps(payload)}</script></html>'.encode())
     detail = json.dumps({"job": {"job_information": {"description": "<p>Role</p>"}}}).encode()
     responses = [io.BytesIO(body) for body in (*pages, detail)]
 

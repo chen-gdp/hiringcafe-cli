@@ -2,12 +2,10 @@
 
 import json
 import os
-import sys
-from pathlib import Path
 
+from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.search_state import InvalidSearchState, build_search_state
-from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
 
 SEARCH_TTL = 900
 

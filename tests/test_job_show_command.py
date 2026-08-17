@@ -53,14 +53,14 @@ def test_job_show_missing_id_is_invalid_argument(monkeypatch, capsys):
     assert capsys.readouterr().out == ""
 
 
-def test_job_show_empty_job_object_is_api_failure(monkeypatch, capsys):
+def test_job_show_empty_job_object_is_api_failure(tmp_path, monkeypatch, capsys):
     """Condition: response job is empty. Expected: exit 1 and no JSON stdout."""
 
     class FakeClient:
         def job_description(self, object_id):
-                return {}
+            return {}
 
-    monkeypatch.setenv("HIRINGCAFE_CACHE_HOME", "/tmp/hiringcafe-empty-cache-test")
+    monkeypatch.setenv("HIRINGCAFE_CACHE_HOME", str(tmp_path / "cache"))
 
     monkeypatch.setattr("hiringcafe_cli.job.WebClient", lambda: FakeClient())
     try:

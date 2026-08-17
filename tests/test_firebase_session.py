@@ -2,8 +2,8 @@
 
 import io
 import json
-import os
 import stat
+
 from firebase_doubles import BytesResponse
 
 from hiringcafe_cli.firebase import FIREBASE_WEB_API_KEY, FirebaseClient
@@ -69,9 +69,7 @@ def test_import_reads_stdin_and_never_accepts_visible_argv(monkeypatch, tmp_path
     """Condition: token arrives on stdin. Expected: owner-only session and no partial credential files."""
     fake_firebase(
         monkeypatch,
-            BytesResponse(
-                json.dumps({"id_token": "id", "refresh_token": "refresh-token", "user_id": "uid"}).encode()
-            ),
+        BytesResponse(json.dumps({"id_token": "id", "refresh_token": "refresh-token", "user_id": "uid"}).encode()),
     )
     monkeypatch.setattr("sys.stdin", io.StringIO("refresh-token\n"))
     path = tmp_path / "session.json"

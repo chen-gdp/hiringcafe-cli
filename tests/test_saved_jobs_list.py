@@ -4,8 +4,8 @@ import json
 import urllib.error
 
 from hiringcafe_cli import saved_jobs_list
-from hiringcafe_cli.saved_jobs_list import FirestoreClient, FirestoreError
 from hiringcafe_cli.saved_jobs import PIPELINE_STAGES
+from hiringcafe_cli.saved_jobs_list import FirestoreClient, FirestoreError
 from hiringcafe_cli.session import SessionStore
 
 
@@ -113,9 +113,7 @@ def test_list_queries_firestore_and_orders_deterministically(tmp_path, monkeypat
             "value": {"arrayValue": {"values": [{"stringValue": stage} for stage in PIPELINE_STAGES]}},
         }
     }
-    assert body["structuredQuery"]["orderBy"] == [
-        {"field": {"fieldPath": "dateSaved"}, "direction": "DESCENDING"}
-    ]
+    assert body["structuredQuery"]["orderBy"] == [{"field": {"fieldPath": "dateSaved"}, "direction": "DESCENDING"}]
     assert body["structuredQuery"]["limit"] == 20
     payload = json.loads(output.getvalue())
     assert [job["id"] for job in payload["jobs"]] == ["a", "b"]

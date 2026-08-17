@@ -4,9 +4,9 @@ import json
 import urllib.error
 
 from hiringcafe_cli import saved_jobs_save
+from hiringcafe_cli.firebase import FirebaseAuthError
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
 from hiringcafe_cli.session import SessionStore
-from hiringcafe_cli.firebase import FirebaseAuthError
 
 
 class BytesResponse:
@@ -73,7 +73,9 @@ def test_save_rejected_credential_exits_five(tmp_path, monkeypatch):
         "refresh",
         lambda *_: (_ for _ in ()).throw(FirebaseAuthError("rejected")),
     )
-    monkeypatch.setattr(saved_jobs_save.WebClient, "job_description", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    monkeypatch.setattr(
+        saved_jobs_save.WebClient, "job_description", lambda *_: (_ for _ in ()).throw(AssertionError())
+    )
     with contextlib.redirect_stderr(io.StringIO()):
         assert saved_jobs_save.run(args()) == 5
 
@@ -144,7 +146,9 @@ def test_save_skips_marketplace_for_imported_jobs(tmp_path, monkeypatch):
     authenticate(tmp_path, monkeypatch)
     monkeypatch.setattr(saved_jobs_save.FirestoreClient, "save", lambda *_: BytesResponse())
     monkeypatch.setattr(
-        saved_jobs_save.WebClient, "job_description", lambda self, object_id: {"objectID": object_id, "source": "import"}
+        saved_jobs_save.WebClient,
+        "job_description",
+        lambda self, object_id: {"objectID": object_id, "source": "import"},
     )
     monkeypatch.setattr(
         saved_jobs_save.WebClient, "marketplace_stage", lambda *_: (_ for _ in ()).throw(AssertionError())

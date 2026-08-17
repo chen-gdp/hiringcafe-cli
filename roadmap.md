@@ -1039,3 +1039,26 @@ Prepare the repository for public visibility without changing CLI behavior:
 - Public users can install from Git and authenticate using documented commands.
 - Security reporting and credential expectations are documented.
 - Existing tests continue to pass.
+
+### PR 6.2 — CI, Ruff, and pre-commit
+
+#### Spec
+
+Add automated quality gates without changing CLI behavior:
+
+- Add Ruff formatting/linting and pre-commit configuration.
+- Add GitHub Actions CI for locked sync, format check, lint, tests, and package build.
+- Apply only mechanical code fixes required by the configured rules.
+
+#### Out of scope
+
+- Adding runtime dependencies.
+- Live-network CI.
+- Publishing packages or releases.
+
+#### Acceptance criteria
+
+- Pre-commit runs Ruff and standard hygiene hooks locally.
+- CI runs on pull requests and pushes to `main`.
+- Existing source passes format/lint checks.
+- Existing tests and package build pass.

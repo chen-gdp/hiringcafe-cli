@@ -15,10 +15,14 @@ def test_normalize_saved_job_converts_timestamps_and_preserves_history():
             "stageHistory": {
                 "arrayValue": {
                     "values": [
-                        {"mapValue": {"fields": {
-                            "stage": {"stringValue": "saved"},
-                            "at": {"timestampValue": "2026-08-17T01:02:03Z"},
-                        }}}
+                        {
+                            "mapValue": {
+                                "fields": {
+                                    "stage": {"stringValue": "saved"},
+                                    "at": {"timestampValue": "2026-08-17T01:02:03Z"},
+                                }
+                            }
+                        }
                     ]
                 }
             },
@@ -26,9 +30,7 @@ def test_normalize_saved_job_converts_timestamps_and_preserves_history():
             "job_information": {"mapValue": {"fields": {"title": {"stringValue": "Engineer"}}}},
             "enriched_company_data": {"mapValue": {"fields": {"name": {"stringValue": "Example"}}}},
             "v5_processed_job_data": {
-                "mapValue": {
-                    "fields": {"formatted_workplace_location": {"stringValue": "Remote"}}
-                }
+                "mapValue": {"fields": {"formatted_workplace_location": {"stringValue": "Remote"}}}
             },
             "apply_url": {"stringValue": "https://example.test/job"},
         },
@@ -56,7 +58,10 @@ def test_normalize_saved_job_rejects_missing_identity_and_invalid_stage():
     for document, message in (
         (base, "objectID"),
         (base | {"fields": base["fields"] | {"objectID": {"stringValue": ""}}}, "objectID"),
-        (base | {"fields": base["fields"] | {"objectID": {"stringValue": "job"}, "stage": {"stringValue": "bad"}}}, "stage"),
+        (
+            base | {"fields": base["fields"] | {"objectID": {"stringValue": "job"}, "stage": {"stringValue": "bad"}}},
+            "stage",
+        ),
     ):
         try:
             normalize_saved_job(document)

@@ -1,5 +1,3 @@
-import contextlib
-import io
 import json
 
 from hiringcafe_cli import search
@@ -34,7 +32,9 @@ def _page_props(page, last, hits=None):
 
 
 def args(pages=1, jsonl=False, page=0):
-    return type("Args", (), {"query": "python", "page": page, "pages": pages, "jsonl": jsonl, "raw_search_state": None})()
+    return type(
+        "Args", (), {"query": "python", "page": page, "pages": pages, "jsonl": jsonl, "raw_search_state": None}
+    )()
 
 
 def test_search_pages_fetches_exactly_requested_pages(monkeypatch):
