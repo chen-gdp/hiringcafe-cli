@@ -86,3 +86,25 @@ def test_cli_firestore_failure_exits_one(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert "HTTP 403" in captured.err
+
+
+def test_cli_rate_limit_exits_three(monkeypatch, capsys):
+    """Condition: search ultimately receives HTTP 429. Expected: exit code 3 and a diagnostic."""
+    from hiringcafe_cli import main, search
+    from hiringcafe_cli.http_client import HireCafeHTTPError
+
+    class FakeClient:
+        @staticmethod
+        def search_page(state, page):
+            raise HireCafeHTTPError("search", 429)
+
+    monkeypatch.setattr(search, "WebClient", FakeClient)
+    try:
+        main(["search", "engineer"])
+    except SystemExit as error:
+        assert error.code == 3
+    else:
+        raise AssertionError("HTTP failure should return a process exit code")
+
+    captured = capsys.readouterr()
+    assert "HTTP 429" in captured.err
