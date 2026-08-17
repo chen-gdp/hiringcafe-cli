@@ -4,24 +4,25 @@
 
 | Purpose | Source |
 |---|---|
-| Saved jobs | Firestore REST API (`https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d6/databases/(default)/documents/savedJobs`) queried as the signed-in user with the Firebase ID token as bearer credential |
+| Saved jobs | Firestore REST API (`POST https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d6/databases/(default)/documents:runQuery`) queried as the signed-in user with the Firebase ID token as bearer credential |
 
 The exact web-app query is verified. `/api/boards/saved` is not a substitute: it is only known to return 401 anonymously and its response contract is unknown.
 
 Verification result: Firestore REST is usable with a Firebase ID token; `/api/boards/saved` is not usable for this feature. Authenticated responses are never cached.
 
-Verified web-app query:
+Verified web-app query translated to the live REST contract:
 
 ```text
-collection: savedJobs
-where: owner == uid
-where: stage == selected stage (optional)
-orderBy: dateSaved, asc or desc by selected sort
+method: POST
+from: [{collectionId: savedJobs}]
+where: owner EQUAL uid AND stage IN pipelineStages
+       or owner EQUAL uid AND stage EQUAL selected stage
+orderBy: [{field: dateSaved, direction: DESCENDING}]
 limit: 20
-cursor: startAfter the last document of the prior page
+response: array entries containing a Firestore document object
 ```
 
-When no tab is selected, the web app filters `stage in [saved, applied, interviewing, offer, rejected, ghosted]` instead of comparing one stage.
+When no tab is selected, the web app filters `stage in [saved, applied, interviewing, offer, rejected, ghosted]` instead of comparing one stage. A live probe confirmed `documents/savedJobs?filter=...&orderBy=...` returns HTTP 400; the CLI must use `:runQuery`.
 
 ## Scope
 

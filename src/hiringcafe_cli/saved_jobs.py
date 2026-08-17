@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 VALID_STAGES = ("saved", "applied", "interviewing", "offer", "rejected", "ghosted", "hidden")
+PIPELINE_STAGES = tuple(stage for stage in VALID_STAGES if stage != "hidden")
 
 
 class SavedJobError(ValueError):

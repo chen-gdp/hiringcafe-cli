@@ -8,7 +8,10 @@ from hiringcafe_cli import search
 from hiringcafe_cli import count
 from hiringcafe_cli import job
 from hiringcafe_cli import auth
+from hiringcafe_cli import saved_jobs_list
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
+from hiringcafe_cli.saved_jobs import VALID_STAGES
+from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
 
 __version__ = "0.1.0"
@@ -70,6 +73,12 @@ def build_parser() -> argparse.ArgumentParser:
     auth_status_parser.set_defaults(handler=auth.status)
     auth_logout_parser = auth_subparsers.add_parser("logout", help="remove the local session")
     auth_logout_parser.set_defaults(handler=auth.logout)
+    saved_parser = subparsers.add_parser("saved-jobs", help="manage saved jobs")
+    saved_subparsers = saved_parser.add_subparsers(dest="saved_command", required=True)
+    saved_list_parser = saved_subparsers.add_parser("list", help="list saved jobs")
+    saved_list_parser.add_argument("--stage", choices=sorted(VALID_STAGES))
+    saved_list_parser.add_argument("--json", action="store_true")
+    saved_list_parser.set_defaults(handler=saved_jobs_list.run)
     return parser
 
 
@@ -95,5 +104,8 @@ def main(argv: list[str] | None = None) -> None:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(5) from error
         except FirebaseTransportError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+        except FirestoreError as error:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(1) from error

@@ -1,5 +1,7 @@
 """Tests for the executable CLI bootstrap."""
 
+from types import SimpleNamespace
+
 from hiringcafe_cli import __version__
 
 
@@ -55,3 +57,32 @@ def test_cli_probe_writes_no_credentials_or_personal_data(capsys):
 
     captured = capsys.readouterr()
     assert "skipped: set LIVE=1" in captured.out
+
+
+def test_cli_firestore_failure_exits_one(monkeypatch, capsys):
+    """Condition: saved-job list receives a Firestore API failure. Expected: exit 1 without a traceback."""
+    from hiringcafe_cli import main, saved_jobs_list
+    from hiringcafe_cli.saved_jobs_list import FirestoreError
+
+    monkeypatch.setattr(
+        saved_jobs_list.FirebaseClient,
+        "refresh",
+        lambda *_: {"idToken": "id-token", "refreshToken": "refresh-token", "userId": "uid"},
+    )
+    monkeypatch.setattr(
+        saved_jobs_list, "store", lambda: SimpleNamespace(load=lambda: SimpleNamespace(refresh_token="refresh-token"))
+    )
+    monkeypatch.setattr(
+        saved_jobs_list,
+        "FirestoreClient",
+        lambda *_: (_ for _ in ()).throw(FirestoreError("Firestore returned HTTP 403")),
+    )
+    try:
+        main(["saved-jobs", "list"])
+    except SystemExit as error:
+        assert error.code == 1
+    else:
+        raise AssertionError("Firestore failure should return an exit code")
+
+    captured = capsys.readouterr()
+    assert "HTTP 403" in captured.err
