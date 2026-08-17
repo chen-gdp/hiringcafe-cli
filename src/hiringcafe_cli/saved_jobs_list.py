@@ -140,6 +140,22 @@ class FirestoreClient:
         body = json.dumps({"fields": fields}, separators=(",", ":")).encode()
         return self._request("PATCH", f"{document_id}?{mask}", body)
 
+    def get(self, document_id: str) -> dict | None:
+        """Read one savedJobs document, returning None when absent."""
+        try:
+            return self._request("GET", document_id)
+        except FirestoreError as error:
+            if getattr(error, "__cause__", None) and getattr(error.__cause__, "code", None) == 404:
+                return None
+            raise
+
+    def update(self, document_id: str, values: dict) -> dict:
+        """Merge-update one existing savedJobs document."""
+        fields = {key: encode_firestore_value(value) for key, value in values.items() if value is not None}
+        mask = "&".join(f"updateMask.fieldPaths={key}" for key in fields)
+        body = json.dumps({"fields": fields}, separators=(",", ":")).encode()
+        return self._request("PATCH", f"{document_id}?{mask}", body)
+
 
 def run(argv, json_output: bool = False) -> int:
     """Execute the saved-jobs list command."""
