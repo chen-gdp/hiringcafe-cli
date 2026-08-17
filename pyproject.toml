@@ -1,0 +1,20 @@
+[project]
+name = "hiringcafe-cli"
+version = "0.1.0"
+description = "Spec-driven Python CLI for Hiring Cafe job search and saved-job tracking"
+readme = "README.md"
+authors = [
+    { name = "chen-gdp", email = "146709874+chen-gdp@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=9.0.0"]
+
+[project.scripts]
+hiringcafe = "hiringcafe_cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
