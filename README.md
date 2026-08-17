@@ -33,6 +33,13 @@ Run the verified anonymous endpoint probe explicitly:
 LIVE=1 uv run hiringcafe probe
 ```
 
+Search one page:
+
+```bash
+uv run hiringcafe search "python developer" --page 0 --json
+uv run hiringcafe search --raw-search-state '{"searchQuery":"python developer"}' --json
+```
+
 Normal tests never access the network. Current commands are intentionally limited to `--help`,
 `--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
 

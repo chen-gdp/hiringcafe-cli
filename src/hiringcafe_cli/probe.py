@@ -107,7 +107,7 @@ def _page(page: int) -> dict:
     return properties
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: object | None = None, json_output: bool = False) -> int:
     """Run the endpoint probe only when explicitly enabled.
 
     Args:
