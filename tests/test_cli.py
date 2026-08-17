@@ -34,3 +34,24 @@ def test_cli_help_documents_exit_contract(capsys):
     assert "Exit codes:" in captured.out
     assert "5 stored credential rejected" in captured.out
     assert captured.err == ""
+
+
+def test_cli_probe_writes_no_credentials_or_personal_data(capsys):
+    """Condition: endpoint probe is disabled. Expected: safe skip message and exit code 0."""
+    import os
+
+    from hiringcafe_cli import main
+
+    old_live = os.environ.pop("LIVE", None)
+    try:
+        main(["probe"])
+    except SystemExit as error:
+        assert error.code == 0
+    else:
+        raise AssertionError("probe should return a process exit code")
+    finally:
+        if old_live is not None:
+            os.environ["LIVE"] = old_live
+
+    captured = capsys.readouterr()
+    assert "skipped: set LIVE=1" in captured.out
