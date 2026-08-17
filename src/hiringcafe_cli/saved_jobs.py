@@ -76,3 +76,24 @@ def normalize_saved_job(document: dict) -> dict:
         "location": processed.get("formatted_workplace_location"),
         "url": fields.get("apply_url"),
     }
+
+
+def encode_firestore_value(value):
+    """Encode one plain Python value in Firestore REST representation."""
+    if value is None:
+        return {"nullValue": None}
+    if isinstance(value, bool):
+        return {"booleanValue": value}
+    if isinstance(value, int):
+        return {"integerValue": str(value)}
+    if isinstance(value, float):
+        return {"doubleValue": value}
+    if isinstance(value, str):
+        return {"stringValue": value}
+    if isinstance(value, list):
+        return {"arrayValue": {"values": [encode_firestore_value(item) for item in value]}}
+    if isinstance(value, dict):
+        if set(value) == {"arrayValue"}:
+            return value
+        return {"mapValue": {"fields": {key: encode_firestore_value(item) for key, item in value.items()}}}
+    raise SavedJobError(f"unsupported Firestore value: {type(value).__name__}")

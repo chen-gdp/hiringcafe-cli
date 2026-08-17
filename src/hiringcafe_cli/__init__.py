@@ -9,6 +9,7 @@ from hiringcafe_cli import count
 from hiringcafe_cli import job
 from hiringcafe_cli import auth
 from hiringcafe_cli import saved_jobs_list
+from hiringcafe_cli import saved_jobs_save
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
@@ -79,6 +80,10 @@ def build_parser() -> argparse.ArgumentParser:
     saved_list_parser.add_argument("--stage", choices=sorted(VALID_STAGES))
     saved_list_parser.add_argument("--json", action="store_true")
     saved_list_parser.set_defaults(handler=saved_jobs_list.run)
+    saved_save_parser = saved_subparsers.add_parser("save", help="save a job")
+    saved_save_parser.add_argument("object_id")
+    saved_save_parser.add_argument("--stage", default="saved")
+    saved_save_parser.set_defaults(handler=saved_jobs_save.run)
     return parser
 
 
