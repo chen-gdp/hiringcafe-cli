@@ -33,19 +33,19 @@ Hooks:
 GitHub Actions must run on pull requests and pushes to `main`:
 
 ```bash
-uv sync --locked
+uv sync
 uv run ruff format --check .
 uv run ruff check .
 uv run pytest -q
 uv build
 ```
 
-CI uses Python 3.12 and does not access live services or account credentials.
+CI uses Python 3.12, installs without the intentionally uncommitted lockfile, and does not access live services or account credentials.
 
 ## Acceptance criteria
 
 - `.pre-commit-config.yaml` exists and runs Ruff locally.
-- CI workflow validates lock, formatting, linting, tests, and package build.
+- CI workflow validates dependencies, formatting, linting, tests, and package build.
 - Existing source passes Ruff after mechanical fixes only.
 - Existing tests continue to pass.
 - No runtime dependency is added.
