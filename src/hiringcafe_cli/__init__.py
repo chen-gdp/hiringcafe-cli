@@ -68,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
     auth_status_parser = auth_subparsers.add_parser("status", help="show credential status")
     auth_status_parser.add_argument("--json", action="store_true")
     auth_status_parser.set_defaults(handler=auth.status)
+    auth_logout_parser = auth_subparsers.add_parser("logout", help="remove the local session")
+    auth_logout_parser.set_defaults(handler=auth.logout)
     return parser
 
 
