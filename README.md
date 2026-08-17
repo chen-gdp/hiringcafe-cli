@@ -64,6 +64,8 @@ hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe saved-jobs stage <objectID> --stage interviewing
 hiringcafe saved-jobs remove <objectID> --yes
 hiringcafe search "python developer" --pages 3 --jsonl
+
+Anonymous search and job-detail GETs retry transport failures, HTTP 408/429, and 5xx twice with bounded jittered backoff. Authenticated mutations never retry.
 hiringcafe auth logout
 ```
 

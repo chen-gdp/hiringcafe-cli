@@ -2,6 +2,8 @@
 
 import json
 import os
+import random
+import time
 import urllib.parse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -15,6 +17,7 @@ BROWSER_HEADERS = {
     ),
 }
 REQUIRED_SSR_KEYS = ("ssrHits", "ssrPage", "ssrTotalCount", "ssrPageSize", "ssrIsLastPage")
+RETRYABLE_STATUSES = {408, 429, *range(500, 600)}
 
 
 class HireCafeHTTPError(RuntimeError):
@@ -47,6 +50,27 @@ class HireCafeTransportError(RuntimeError):
         self.endpoint = endpoint
         self.cause = cause
         super().__init__(f"{endpoint} transport failed: {cause}")
+
+
+def retryable(error: Exception) -> bool:
+    """Classify whether an anonymous GET error may be retried."""
+    return isinstance(error, HireCafeTransportError) or (
+        isinstance(error, HireCafeHTTPError) and error.status in RETRYABLE_STATUSES
+    )
+
+
+class RetryPolicy:
+    """Bounded exponential backoff with full jitter."""
+
+    def __init__(self, count: int = 2, base: float = 0.5, timeout: float = 30) -> None:
+        self.count = count
+        self.base = base
+        self.timeout = timeout
+        self.sleep = time.sleep
+
+    def delay(self, attempt: int) -> float:
+        """Return the bounded backoff for a zero-based attempt."""
+        return random.uniform(0, self.base * (2**attempt))
 
 
 def parse_ssr_page(html: str) -> dict:
@@ -98,6 +122,7 @@ class WebClient:
         """
         self.base_url = (base_url or os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com")).rstrip("/")
         self.timeout = timeout
+        self.retry_policy = RetryPolicy(timeout=timeout)
 
     def search_page(self, search_state: dict, page: int) -> dict:
         """Fetch one SSR search page.
@@ -181,13 +206,18 @@ class WebClient:
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
         request = Request(url, headers=BROWSER_HEADERS)
-        try:
-            with self.urlopen(request, timeout=self.timeout) as response:
-                return response.read().decode("utf-8")
-        except HTTPError as error:
-            raise HireCafeHTTPError(endpoint, error.code, error.reason) from error
-        except (URLError, TimeoutError, OSError) as error:
-            raise HireCafeTransportError(endpoint, error) from error
+        for attempt in range(self.retry_policy.count + 1):
+            try:
+                with self.urlopen(request, timeout=self.timeout) as response:
+                    return response.read().decode("utf-8")
+            except HTTPError as error:
+                wrapped = HireCafeHTTPError(endpoint, error.code, error.reason)
+            except (URLError, TimeoutError, OSError) as error:
+                wrapped = HireCafeTransportError(endpoint, error)
+            if attempt == self.retry_policy.count or not retryable(wrapped):
+                raise wrapped
+            self.retry_policy.sleep(self.retry_policy.delay(attempt))
+        raise AssertionError("unreachable")
 
     def _json(self, body: str) -> dict:
         """Parse a JSON object response."""
