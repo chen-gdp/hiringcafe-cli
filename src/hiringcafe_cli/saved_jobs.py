@@ -26,7 +26,7 @@ def _value(value: Any) -> Any:
             return value[key]
     if "timestampValue" in value:
         timestamp = datetime.fromisoformat(value["timestampValue"].replace("Z", "+00:00"))
-        return timestamp.isoformat()
+        return timestamp.isoformat().replace("+00:00", "Z")
     if "mapValue" in value:
         return decode_firestore_fields(value["mapValue"].get("fields", {}))
     if "arrayValue" in value:

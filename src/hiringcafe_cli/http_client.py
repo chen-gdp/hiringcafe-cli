@@ -148,6 +148,29 @@ class WebClient:
         except (URLError, TimeoutError, OSError) as error:
             raise HireCafeTransportError("marketplace-stage", error) from error
 
+    def marketplace_mutation(self, endpoint: str, body: dict) -> None:
+        """POST a marketplace saved-job mutation and require success."""
+        request = urllib.request.Request(
+            f"{self.base_url}/api/{endpoint}",
+            data=json.dumps(body, separators=(",", ":")).encode(),
+            headers={**BROWSER_HEADERS, "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with self.urlopen(request, timeout=self.timeout) as response:
+                response.read()
+        except HTTPError as error:
+            raise HireCafeHTTPError(endpoint, error.code, error.reason) from error
+        except (URLError, TimeoutError, OSError) as error:
+            raise HireCafeTransportError(endpoint, error) from error
+
+    def remove_from_list(self, object_id: str, id_token: str, stage: str) -> None:
+        """Remove a job from its old marketplace stage list."""
+        self.marketplace_mutation(
+            "removeJobFromList",
+            {"job_id": object_id, "user_token": id_token, "stage": stage, "should_delete": False},
+        )
+
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
         request = Request(url, headers=BROWSER_HEADERS)
