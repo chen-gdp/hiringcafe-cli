@@ -53,6 +53,13 @@ Inspect a job:
 uv run hiringcafe job show <objectID> --json
 ```
 
+Authenticate using Firebase. The CLI stores only a refresh token in an owner-only file:
+
+```bash
+hiringcafe auth login --email you@example.com
+printf '%s\n' "$HIRINGCAFE_REFRESH_TOKEN" | hiringcafe auth import
+```
+
 Normal tests never access the network. Current commands are intentionally limited to `--help`,
 `--version`, and `probe`; search and auth commands arrive with their roadmap PRs.
 

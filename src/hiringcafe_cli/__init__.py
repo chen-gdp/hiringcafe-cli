@@ -7,6 +7,8 @@ from hiringcafe_cli import probe
 from hiringcafe_cli import search
 from hiringcafe_cli import count
 from hiringcafe_cli import job
+from hiringcafe_cli import auth
+from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.search_state import InvalidSearchState
 
 __version__ = "0.1.0"
@@ -56,6 +58,13 @@ def build_parser() -> argparse.ArgumentParser:
     job_show_parser.add_argument("object_id")
     job_show_parser.add_argument("--json", action="store_true")
     job_show_parser.set_defaults(handler=job.run)
+    auth_parser = subparsers.add_parser("auth", help="manage Firebase authentication")
+    auth_subparsers = auth_parser.add_subparsers(dest="auth_command", required=True)
+    auth_login_parser = auth_subparsers.add_parser("login", help="log in to Firebase")
+    auth_login_parser.add_argument("--email", required=True)
+    auth_login_parser.set_defaults(handler=auth.login_email)
+    auth_import_parser = auth_subparsers.add_parser("import", help="import a refresh token")
+    auth_import_parser.set_defaults(handler=auth.import_token)
     return parser
 
 
@@ -75,5 +84,11 @@ def main(argv: list[str] | None = None) -> None:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(2) from error
         except ValueError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+        except FirebaseAuthError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(5) from error
+        except FirebaseTransportError as error:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(1) from error
