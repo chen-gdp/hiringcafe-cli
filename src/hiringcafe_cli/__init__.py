@@ -13,6 +13,7 @@ from hiringcafe_cli import saved_jobs_save
 from hiringcafe_cli import saved_jobs_stage
 from hiringcafe_cli import saved_jobs_remove
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
+from hiringcafe_cli.http_client import HireCafeHTTPError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
@@ -50,8 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser = subparsers.add_parser("search", help="search jobs")
     search_parser.add_argument("query", nargs="?", default="")
     search_parser.add_argument("--page", type=int, default=0)
+    search_parser.add_argument("--pages", type=int, default=1)
     search_parser.add_argument("--raw-search-state")
     search_parser.add_argument("--json", action="store_true")
+    search_parser.add_argument("--jsonl", action="store_true")
     search_parser.set_defaults(handler=search.run)
     count_parser = subparsers.add_parser("count", help="print total result count")
     count_parser.add_argument("query", nargs="?", default="")
@@ -124,3 +127,6 @@ def main(argv: list[str] | None = None) -> None:
         except FirestoreError as error:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(1) from error
+        except HireCafeHTTPError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(3 if error.status == 429 else 1) from error

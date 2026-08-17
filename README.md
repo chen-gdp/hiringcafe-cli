@@ -63,6 +63,7 @@ hiringcafe saved-jobs list --json
 hiringcafe saved-jobs save <objectID> --stage saved
 hiringcafe saved-jobs stage <objectID> --stage interviewing
 hiringcafe saved-jobs remove <objectID> --yes
+hiringcafe search "python developer" --pages 3 --jsonl
 hiringcafe auth logout
 ```
 
