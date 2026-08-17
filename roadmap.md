@@ -1014,3 +1014,28 @@ These are out of scope regardless of accessibility:
 - Endpoint behavior changes update this roadmap before or in the same PR as code.
 - Tests cover parsers, state building, auth branches, and mutation decisions without unnecessary fixtures.
 - No commit, fixture, log, or issue may contain a refresh token, ID token, provider password, cookie, real UID, email, or private saved-job data.
+
+## Phase 6 — Production repository
+
+### PR 6.1 — Public repository baseline
+
+#### Spec
+
+Prepare the repository for public visibility without changing CLI behavior:
+
+- Add MIT license, package metadata, changelog, and security policy.
+- Replace private/draft repository language with a public unofficial CLI README.
+- Document Git installation, authentication, local storage, cache behavior, retries, commands, and exit codes.
+
+#### Out of scope
+
+- Publishing to PyPI.
+- Creating a version tag or release.
+- Repository visibility changes.
+
+#### Acceptance criteria
+
+- The README clearly states that the project is unofficial and not affiliated with Hiring Cafe.
+- Public users can install from Git and authenticate using documented commands.
+- Security reporting and credential expectations are documented.
+- Existing tests continue to pass.
