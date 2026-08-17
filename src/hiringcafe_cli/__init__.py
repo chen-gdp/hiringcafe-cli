@@ -11,6 +11,7 @@ from hiringcafe_cli import auth
 from hiringcafe_cli import saved_jobs_list
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
+from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
 
 __version__ = "0.1.0"
@@ -103,5 +104,8 @@ def main(argv: list[str] | None = None) -> None:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(5) from error
         except FirebaseTransportError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+        except FirestoreError as error:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(1) from error
