@@ -14,7 +14,7 @@ Provide a deterministic CLI for humans and autonomous agents to:
 
 1. Search HiringCafe jobs without a browser.
 2. Inspect a job description.
-3. Authenticate through Firebase without the CLI collecting a provider password.
+3. Authenticate through Firebase while collecting credentials only through explicit user-owned input.
 4. List and mutate the authenticated user's saved jobs.
 
 ## Non-goals
@@ -23,7 +23,7 @@ Provide a deterministic CLI for humans and autonomous agents to:
 - Resume upload, alerts, notes, admin features, or internal endpoints.
 - Browser automation for provider login.
 - Hiding endpoint failures as empty results.
-- Storing provider passwords.
+- Storing any password or repeatedly prompting for it.
 
 ## Runtime decision
 
@@ -90,7 +90,7 @@ Observed login methods:
 - Google, Microsoft, and Facebook OAuth popups.
 - Firebase email/password with email verification.
 
-The CLI must not collect an email/password or OAuth provider password. Authentication must use browser-mediated login or explicit import of a Firebase token by its owner.
+The CLI must not collect an OAuth provider password. For the verified Firebase email/password method, the CLI may accept the account password through hidden interactive input or the existing `HIRINGCAFE_PASSWORD` environment variable, immediately exchange it for a Firebase refresh token, and discard the password. It must never log, cache, or persist the password.
 
 Saved jobs are Firestore documents, with marketplace REST calls as secondary synchronization:
 
@@ -399,7 +399,7 @@ Acceptance criteria:
 
 Authentication is a prerequisite for all Phase 3 behavior.
 
-### PR 2.1 — Firebase session model and token import
+### PR 2.1 — Firebase session model, token import, and email login
 
 #### Spec
 
@@ -408,6 +408,7 @@ Define the only credential representation used by the CLI.
 In scope:
 
 - Store a Firebase refresh token, not a provider password.
+- Add `hiringcafe auth login --email`: read the password through hidden input or `HIRINGCAFE_PASSWORD`, call Firebase `signInWithPassword`, store the returned refresh token, and discard the password.
 - Import a refresh token through stdin or a file descriptor; never as a visible argv value.
 - Ephemeral ID token refresh through Firebase auth.
 - Session file at the platform user config directory, for example `~/.config/hiringcafe-cli/session.json` on macOS/Linux.
@@ -417,7 +418,7 @@ In scope:
 
 Out of scope:
 
-- Email/password login.
+- OAuth login.
 - OAuth password collection.
 - Encryption of the local refresh token beyond filesystem permissions; document this limitation.
 
