@@ -42,7 +42,7 @@ def test_auth_status_valid_credential_outputs_metadata_without_tokens(monkeypatc
         raise AssertionError("status should return an exit code")
     assert calls == ["stored-refresh"]
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"version": 1, "authenticated": True, "userId": "uid"}
+    assert payload == {"version": 1, "authenticated": True}
 
 
 def test_auth_status_missing_session_exits_four(monkeypatch, tmp_path, capsys):

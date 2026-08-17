@@ -65,7 +65,7 @@ def status(argv: object, json_output: bool = False) -> int:
     credentials = FirebaseClient().refresh(session.refresh_token)
     if json_output:
         payload = json.dumps(
-            {"version": 1, "authenticated": True, "userId": credentials.get("userId")},
+            {"version": 1, "authenticated": True},
             separators=(",", ":"),
         )
         print(payload)
