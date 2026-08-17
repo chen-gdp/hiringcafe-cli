@@ -59,7 +59,8 @@ class FirestoreClient:
         if not isinstance(documents, list):
             raise ValueError("Firestore documents is not an array")
         jobs = [normalize_saved_job(document) for document in documents]
-        return sorted(jobs, key=lambda job: (job["savedAt"], job["documentId"]), reverse=True)
+        jobs.sort(key=lambda job: job["documentId"])
+        return sorted(jobs, key=lambda job: job["savedAt"], reverse=True)
 
 
 def run(argv, json_output: bool = False) -> int:

@@ -105,8 +105,8 @@ def test_list_queries_firestore_and_orders_deterministically(tmp_path, monkeypat
     assert "orderBy=dateSaved desc" in query
     assert "pageSize=20" in query
     payload = json.loads(output.getvalue())
-    assert [job["id"] for job in payload["jobs"]] == ["b", "a"]
-    assert payload["jobs"][0]["documentId"] == "uid_b"
+    assert [job["id"] for job in payload["jobs"]] == ["a", "b"]
+    assert payload["jobs"][0]["documentId"] == "uid_a"
 
 
 def test_list_permission_denial_is_an_api_failure(tmp_path, monkeypatch):
