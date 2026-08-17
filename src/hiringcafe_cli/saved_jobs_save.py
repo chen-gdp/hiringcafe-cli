@@ -55,8 +55,5 @@ def run(argv, json_output: bool = False) -> int:
     except Exception as error:
         print(f"hiringcafe: save completed partially: {error}", file=sys.stderr)
         return 1
-    except (FirebaseAuthError, ValueError, FirestoreError, HireCafeHTTPError, HireCafeTransportError) as error:
-        print(f"hiringcafe: save failed: {error}", file=sys.stderr)
-        return 1
     print(f"Saved {object_id} as {argv.stage}")
     return 0
