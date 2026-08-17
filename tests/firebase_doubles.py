@@ -1,4 +1,4 @@
-"""Shared Firebase test doubles."""
+"""Shared Firebase response doubles."""
 
 import io
 
