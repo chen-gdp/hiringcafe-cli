@@ -2,11 +2,10 @@ import contextlib
 import io
 import json
 import urllib.error
-import urllib.parse
 
 from hiringcafe_cli import saved_jobs_list
-from hiringcafe_cli.firebase import FirebaseAuthError
 from hiringcafe_cli.saved_jobs_list import FirestoreClient, FirestoreError
+from hiringcafe_cli.saved_jobs import PIPELINE_STAGES
 from hiringcafe_cli.session import SessionStore
 
 
@@ -85,12 +84,10 @@ def test_list_queries_firestore_and_orders_deterministically(tmp_path, monkeypat
         requests.append(request)
         return BytesResponse(
             json.dumps(
-                {
-                    "documents": [
-                        document("uid_b", "b", "2024-01-01T00:00:00Z", "applied"),
-                        document("uid_a", "a", "2024-01-01T00:00:00Z", "saved"),
-                    ]
-                }
+                [
+                    {"document": document("uid_b", "b", "2024-01-01T00:00:00Z", "applied")},
+                    {"document": document("uid_a", "a", "2024-01-01T00:00:00Z", "saved")},
+                ]
             ).encode()
         )
 
@@ -98,12 +95,28 @@ def test_list_queries_firestore_and_orders_deterministically(tmp_path, monkeypat
     output = io.StringIO()
     with contextlib.redirect_stdout(output):
         assert saved_jobs_list.run(args(as_json=True), True) == 0
-    url = urllib.parse.urlsplit(requests[0].full_url)
-    query = urllib.parse.unquote(url.query).replace("+", " ")
-    assert "owner==uid" in query
-    assert "stage in [saved,applied,interviewing,offer,rejected,ghosted]" in query
-    assert "orderBy=dateSaved desc" in query
-    assert "pageSize=20" in query
+    assert requests[0].full_url == saved_jobs_list.FIRESTORE_RUN_QUERY
+    assert requests[0].method == "POST"
+    body = json.loads(requests[0].data.decode())
+    filters = body["structuredQuery"]["where"]["compositeFilter"]["filters"]
+    assert filters[0] == {
+        "fieldFilter": {
+            "field": {"fieldPath": "owner"},
+            "op": "EQUAL",
+            "value": {"stringValue": "uid"},
+        }
+    }
+    assert filters[1] == {
+        "fieldFilter": {
+            "field": {"fieldPath": "stage"},
+            "op": "IN",
+            "value": {"arrayValue": {"values": [{"stringValue": stage} for stage in PIPELINE_STAGES]}},
+        }
+    }
+    assert body["structuredQuery"]["orderBy"] == [
+        {"field": {"fieldPath": "dateSaved"}, "direction": "DESCENDING"}
+    ]
+    assert body["structuredQuery"]["limit"] == 20
     payload = json.loads(output.getvalue())
     assert [job["id"] for job in payload["jobs"]] == ["a", "b"]
     assert payload["jobs"][0]["documentId"] == "uid_a"

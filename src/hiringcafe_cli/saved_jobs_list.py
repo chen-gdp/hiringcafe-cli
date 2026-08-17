@@ -2,7 +2,6 @@
 
 import json
 import urllib.error
-import urllib.parse
 import urllib.request
 import sys
 from urllib.request import urlopen
@@ -12,7 +11,7 @@ from hiringcafe_cli.firebase import FirebaseClient, FirebaseAuthError
 from hiringcafe_cli.saved_jobs import PIPELINE_STAGES, VALID_STAGES, normalize_saved_job
 from hiringcafe_cli.session import SessionStore
 
-FIRESTORE_BASE = "https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d/databases/(default)/documents/savedJobs"
+FIRESTORE_RUN_QUERY = "https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d6/databases/(default)/documents:runQuery"
 
 
 class FirestoreError(RuntimeError):
@@ -29,18 +28,47 @@ class FirestoreClient:
 
     def list(self, owner: str, stage: str | None = None) -> list[dict]:
         """List the owner's pipeline saved jobs, newest first."""
-        filters = [f"owner=={owner}"]
-        filters.append(f"stage in [{','.join(PIPELINE_STAGES)}]" if stage is None else f"stage=={stage}")
-        query = urllib.parse.urlencode(
+        stage_filter = {
+            "field": {"fieldPath": "stage"},
+            "op": "IN",
+            "value": {"arrayValue": {"values": [{"stringValue": stage} for stage in PIPELINE_STAGES]}},
+        }
+        if stage is not None:
+            stage_filter = {"field": {"fieldPath": "stage"}, "op": "EQUAL", "value": {"stringValue": stage}}
+        body = json.dumps(
             {
-                "filter": " AND ".join(filters),
-                "orderBy": "dateSaved desc",
-                "pageSize": 20,
-            }
-        )
+                "structuredQuery": {
+                    "from": [{"collectionId": "savedJobs"}],
+                    "where": {
+                        "compositeFilter": {
+                            "op": "AND",
+                            "filters": [
+                                {
+                                    "fieldFilter": {
+                                        "field": {"fieldPath": "owner"},
+                                        "op": "EQUAL",
+                                        "value": {"stringValue": owner},
+                                    }
+                                },
+                                {"fieldFilter": stage_filter},
+                            ],
+                        }
+                    },
+                    "orderBy": [{"field": {"fieldPath": "dateSaved"}, "direction": "DESCENDING"}],
+                    "limit": 20,
+                }
+            },
+            separators=(",", ":"),
+        ).encode()
         request = urllib.request.Request(
-            f"{FIRESTORE_BASE}?{query}",
-            headers={"Authorization": f"Bearer {self.id_token}", "Accept": "application/json"},
+            FIRESTORE_RUN_QUERY,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {self.id_token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            method="POST",
         )
         try:
             with self.urlopen(request, timeout=30) as response:
@@ -53,11 +81,11 @@ class FirestoreClient:
             payload = json.loads(text)
         except json.JSONDecodeError as error:
             raise ValueError("invalid Firestore JSON response") from error
-        if not isinstance(payload, dict):
-            raise ValueError("Firestore response is not an object")
-        documents = payload.get("documents", [])
-        if not isinstance(documents, list):
-            raise ValueError("Firestore documents is not an array")
+        if not isinstance(payload, list):
+            raise ValueError("Firestore runQuery response is not an array")
+        documents = [entry.get("document", {}) for entry in payload if isinstance(entry, dict) and "document" in entry]
+        if any(not isinstance(document, dict) for document in documents):
+            raise ValueError("Firestore runQuery document is not an object")
         jobs = [normalize_saved_job(document) for document in documents]
         jobs.sort(key=lambda job: job["documentId"])
         return sorted(jobs, key=lambda job: job["savedAt"], reverse=True)

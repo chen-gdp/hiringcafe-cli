@@ -97,7 +97,7 @@ Saved jobs are Firestore documents, with marketplace REST calls as secondary syn
 | Status | Purpose | Data or request | Verified result |
 |---|---|---|---|
 | Bundle-verified | Saved job storage | Firestore collection `savedJobs`, document ID `${uid}_${objectID}` | Fields observed in app logic: `objectID`, `owner`, `dateSaved`, `stage`, `stageHistory`, `isHidden`, `counted_milestones`, `firstSavedAt`, `userNote`, `journal`, `tags`, `nextAction`. The full search-hit object is merged into each document, with private user-tracking arrays removed before writing. |
-| Bundle-verified | Tracker list | Firestore query on `savedJobs` | `where owner == uid`; when a tab is selected, add `where stage == stage`; otherwise use `where stage in pipelineStages`. Order by `dateSaved` ascending or descending according to the selected sort, with 20-document cursor pages. |
+| Live-verified | Tracker list | Firestore REST `POST .../documents:runQuery` | A structured query on `savedJobs` with owner and stage filters, `dateSaved` ordering, and limit 20 works with a Firebase ID token. `documents/savedJobs?filter=...` is not a valid Firestore REST contract. |
 | Bundle-verified | Save/update stage | Firestore write plus `POST /api/updateMarketplaceJobStageForUser` with JSON `{job_id, user_token, stage}` | `user_token` is a Firebase ID token. |
 | Bundle-verified | List removal from a stage | `POST /api/removeJobFromList` with `{job_id, user_token, stage, should_delete:false}` | Used when moving out of selected old stages. |
 | Bundle-verified | Delete saved job | `POST /api/removeJobFromList` with `{job_id, user_token, stage, should_delete:true}` | Unauthenticated empty-body probe returned `400 Missing job_id, user_token, or stage`, confirming the body fields. |
@@ -573,8 +573,8 @@ hiringcafe saved-jobs list --json
 
 In scope:
 
-- Firebase/Firestore query for the current user's `savedJobs`.
-- Use `where owner == uid`, optionally `where stage == selected stage`, ordered by `dateSaved`; default to descending order and 20 documents per page.
+- Firebase/Firestore structured query for the current user's `savedJobs`.
+- Use `POST .../documents:runQuery` with `where owner == uid`, optionally `where stage == selected stage`, otherwise `stage in pipelineStages`; order by `dateSaved` descending and limit to 20 documents.
 - Auth failure and permission-denied handling.
 - Deterministic ordering by `dateSaved` descending, with document ID as tie-breaker.
 
