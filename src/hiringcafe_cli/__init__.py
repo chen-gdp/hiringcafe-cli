@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from importlib.metadata import PackageNotFoundError, version
 
 from hiringcafe_cli import (
     auth,
@@ -21,7 +22,10 @@ from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("hiringcafe-cli")
+except PackageNotFoundError:  # pragma: no cover - source-tree fallback
+    __version__ = "0.0.0+unknown"
 
 EXIT_CONTRACT = """\
 Exit codes:

@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for implementation.
+Merged in GitHub PR #42.
 
 ## Incident
 

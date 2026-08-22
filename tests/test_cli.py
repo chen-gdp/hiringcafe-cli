@@ -1,5 +1,7 @@
 """Tests for the executable CLI bootstrap."""
 
+import tomllib
+from pathlib import Path
 from types import SimpleNamespace
 
 from hiringcafe_cli import __version__
@@ -19,6 +21,14 @@ def test_cli_version_prints_package_semantic_version(capsys):
     captured = capsys.readouterr()
     assert captured.out == f"hiringcafe {__version__}\n"
     assert captured.err == ""
+
+
+def test_package_runtime_version_matches_project_metadata():
+    """Condition: package metadata is versioned. Expected: runtime version matches pyproject."""
+    with Path(__file__).parents[1].joinpath("pyproject.toml").open("rb") as project_file:
+        project_version = tomllib.load(project_file)["project"]["version"]
+
+    assert __version__ == project_version
 
 
 def test_cli_help_documents_exit_contract(capsys):

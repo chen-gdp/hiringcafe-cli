@@ -47,7 +47,8 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3 PyPI release automation | Merged | Release workflow, artifact verification, checksums, and Trusted Publishing are ready for the first `v*` tag. |
 | 8.3.1 Release test stability | Merged | Implemented in PR #41. |
 | 8.3.2 PyPI checksum isolation | Merged | Implemented in PR #42; uncovered checksum verifier path handling. |
-| 8.3.3 Release artifact staging | Ready | Stage checksums separately from the two PyPI distributions and release `0.1.4`. |
+| 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
+| 8.3.4 Runtime package version sync | Ready | Fix installed `--version` metadata drift and release `0.1.5`. |
 | 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
