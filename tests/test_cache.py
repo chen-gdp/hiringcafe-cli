@@ -99,19 +99,21 @@ def test_failed_cache_replace_preserves_entry_and_removes_temporary_file(tmp_pat
     Expected: the old entry remains and the temporary file is removed.
     """
     key = ("search", "base", "state", 0)
-    cache_write(key, {"value": 1}, ttl=1, root=tmp_path)
+    current_time = 1_000_000.0
+    monkeypatch.setattr("hiringcafe_cli.cache.time.time", lambda: current_time)
+    cache_write(key, {"value": 1}, ttl=60, root=tmp_path)
 
     def fail_replace(source, destination):
         raise OSError("replace failed")
 
     monkeypatch.setattr("hiringcafe_cli.cache.os.replace", fail_replace)
     try:
-        cache_write(key, {"value": 2}, ttl=1, root=tmp_path)
+        cache_write(key, {"value": 2}, ttl=60, root=tmp_path)
     except OSError:
         pass
     else:
         raise AssertionError("write should fail")
-    assert cache_read(key, ttl=1, root=tmp_path) == {"value": 1}
+    assert cache_read(key, ttl=60, root=tmp_path) == {"value": 1}
     assert list(tmp_path.iterdir()) == [CacheStore(tmp_path).path(key)]
 
 
