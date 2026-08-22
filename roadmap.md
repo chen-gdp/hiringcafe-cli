@@ -41,7 +41,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 7.1 Saved-job write integrity | Merged | Implemented in PR #26. |
 | 7.2 Cache isolation and hardening | Merged | Implemented in PR #27 and landed through recovery PR #29. |
 | 7.3 Python 3.11-3.14 support | Merged | Implemented in PR #28 and landed through recovery PR #29. |
-| 7.4 Production resilience follow-ups | Open | Corrupt-cache recovery, bounded reads, legacy-stage guards, HTTPS-only overrides, transport diagnostics, and CI hardening. |
+| 7.4 Production resilience follow-ups | Merged | Implemented in PR #31. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
 | 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
