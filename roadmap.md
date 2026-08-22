@@ -44,11 +44,11 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 7.4 Production resilience follow-ups | Merged | Implemented in PR #31. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
-| 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
-| 8.4 Search filters and facets | Deferred | Requires a captured working searchState or exact facet contract. |
+| 8.3 PyPI release automation | Deferred | Spec ready; publish through PyPI Trusted Publishing. |
+| 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
-| 8.7 Browser OAuth login | Deferred | Same blocker as PR 2.3. |
+| 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 
 
@@ -1284,9 +1284,82 @@ These are intentionally deferred until Phase 7 is merged. Each item needs its ow
 
 - 8.1 `--json` coverage for mutations and auth commands after the schema is agreed with agent users.
 - 8.2 Multi-page JSONL cache reuse plus duplicate-ID handling across pages.
-- 8.3 Tagged releases, build artifacts, and a chosen distribution channel.
+- 8.3 Tagged PyPI releases, build artifacts, checksums, and Trusted Publishing distribution.
 - 8.4 Filter flags and facets only after a working `searchState` or exact facet contract is captured.
 - 8.5 Tracker search and saved-job notes/tags/journal only after authenticated response captures are verified.
 - 8.6 Saved-job list pagination after cursor semantics or a higher-limit contract is verified.
-- 8.7 Browser OAuth login, inheriting the PR 2.3 verification blocker.
+- 8.7 Browser OAuth login, using the PR 2.3 specification and verification blocker.
 - 8.8 Additional CI assurance (for example mypy, Dependabot, or CodeQL) after the desired scope is selected.
+
+### PR 8.3 — PyPI release automation
+
+#### Spec
+
+Publish versioned releases to PyPI:
+
+- Publish only from immutable `v*` tags.
+- Build the sdist and universal wheel with the existing `uv build` backend.
+- Use GitHub Trusted Publishing; store no PyPI token.
+- Publish to `https://upload.pypi.org/legacy/` and attach identical artifacts/checksums to the GitHub release.
+- Pin actions by SHA and grant only the permissions required for OIDC publication.
+- Document the protected GitHub environment and PyPI trusted-publisher setup.
+- Update README and changelog for PyPI installation.
+
+#### Out of scope
+
+- TestPyPI rehearsal unless the first production release fails, semantic-version automation, platform wheels, and HiringCafe feature changes.
+
+#### Acceptance criteria
+
+- Non-release pushes never publish.
+- A tag publishes exactly once and produces identical local/CI artifacts.
+- PyPI installation works on Python 3.11–3.14 with no runtime dependencies.
+- No credential enters the workflow or artifacts.
+- Documentation and release runbook match the implemented workflow.
+
+### PR 8.4 — Search filters and facets
+
+#### Spec
+
+Add only contract-verified search inputs:
+
+- Capture a working `searchState` for each filter before exposing a CLI flag.
+- Reproduce the narrower result through the verified SSR search route.
+- Capture the exact `/api/search-facets` method, parameters, auth requirement, and response schema before implementing `facets`.
+- Reject invalid values with exit 2 before HTTP.
+- Cache by the canonical complete search state, base URL, and page.
+- Keep user-tracking arrays out of normalized output.
+
+#### Out of scope
+
+- AI-search endpoints, client-side filtering, fuzzy parsing, dependencies, and guessed contracts.
+
+#### Acceptance criteria
+
+- Every accepted flag traces to verified live behavior.
+- Invalid input performs no network request.
+- Facets exist only after their exact endpoint contract is verified.
+- Offline tests and the opt-in live probe pass.
+
+### PR 8.7 — Browser OAuth login
+
+#### Spec
+
+Use the complete blocked PR 2.3 specification:
+
+- Verify the real browser route, provider behavior, and loopback callback first.
+- Implement `hiringcafe auth login --browser` with the standard library only.
+- Use a single-use state, PKCE where supported, loopback-only binding, and a bounded timeout.
+- Exchange no provider password and persist only the Firebase refresh token.
+- Leave no partial session on cancellation or failure.
+
+#### Out of scope
+
+- Headless login, browser-profile credential access, embedded OAuth secrets, and provider automation.
+
+#### Acceptance criteria
+
+- Verified live evidence is recorded before implementation.
+- Successful browser login stores the existing session format and `auth status` succeeds.
+- Cancelled, expired, malformed, or replayed callbacks write no session.
+- No token or credential appears in output or tests.
