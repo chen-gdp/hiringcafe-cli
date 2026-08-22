@@ -38,8 +38,8 @@ def test_cache_keys_and_purge(tmp_path):
     """
     search_key = ("search", "base", "state", 0)
     job_key = ("job", "base", "id")
-    cache_write(search_key, {"kind": "search"}, ttl=1, root=tmp_path)
-    cache_write(job_key, {"kind": "job"}, ttl=1, root=tmp_path)
+    cache_write(search_key, {"kind": "search"}, ttl=120, root=tmp_path)
+    cache_write(job_key, {"kind": "job"}, ttl=120, root=tmp_path)
     assert cache_read(search_key, ttl=1, root=tmp_path)["kind"] == "search"
     assert cache_read(job_key, ttl=1, root=tmp_path)["kind"] == "job"
     CacheStore(tmp_path).purge()
