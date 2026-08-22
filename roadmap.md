@@ -1085,3 +1085,27 @@ Close the local session permission race without changing the session format:
 - No interval exists where the temporary file containing the refresh token is group/world readable.
 - Failed writes do not leave refresh-token temporary files behind.
 - Existing tests and quality checks pass.
+
+### PR 6.4 — Agent-focused README
+
+#### Spec
+
+Make the public README immediately useful to autonomous agents:
+
+- Lead with a concrete search command and the CLI’s automation value.
+- Add an agent install-and-verify path with `uv tool install`.
+- Show JSON/JSONL consumption and noninteractive refresh-token import.
+- Document stdout/stderr separation, stable exit actions, and retry/cache/auth safety boundaries.
+- Preserve the unofficial-client warning and accurate beta/deferred status.
+
+#### Out of scope
+
+- New CLI behavior.
+- Website copy, screenshots, or release assets.
+- Changing authentication or storage formats.
+
+#### Acceptance criteria
+
+- README commands match the implemented CLI surface.
+- Security, cache, retry, local-data, and exit-code statements remain accurate.
+- Markdown/pre-commit checks pass.
