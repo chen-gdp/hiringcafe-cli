@@ -16,7 +16,7 @@ from hiringcafe_cli import (
 )
 from hiringcafe_cli.cache import CacheStore, active_cache_root
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
-from hiringcafe_cli.http_client import HireCafeHTTPError
+from hiringcafe_cli.http_client import HireCafeHTTPError, HireCafeTransportError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
 from hiringcafe_cli.search_state import InvalidSearchState
@@ -147,3 +147,6 @@ def main(argv: list[str] | None = None) -> None:
         except HireCafeHTTPError as error:
             print(f"hiringcafe: {error}", file=sys.stderr)
             raise SystemExit(3 if error.status == 429 else 1) from error
+        except HireCafeTransportError as error:
+            print(f"hiringcafe: {error}", file=sys.stderr)
+            raise SystemExit(1) from error

@@ -41,7 +41,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 7.1 Saved-job write integrity | Merged | Implemented in PR #26. |
 | 7.2 Cache isolation and hardening | Merged | Implemented in PR #27 and landed through recovery PR #29. |
 | 7.3 Python 3.11-3.14 support | Merged | Implemented in PR #28 and landed through recovery PR #29. |
-| 7.4 Production resilience follow-ups | Open | Corrupt-cache recovery, bounded reads, legacy-stage guard, and CI hardening. |
+| 7.4 Production resilience follow-ups | Open | Corrupt-cache recovery, bounded reads, legacy-stage guards, HTTPS-only overrides, transport diagnostics, and CI hardening. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
 | 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
@@ -1258,6 +1258,9 @@ Close resilience findings found by the production re-review:
 - Treat invalid JSON or an incompatible cache schema as a cache miss, delete the entry, and continue.
 - Reject a saved-job document whose `stage` is missing or unsupported before marketplace deletion.
 - Bound HiringCafe, Firebase, and Firestore response reads at 8 MiB.
+- Catch anonymous HiringCafe transport failures and map them to exit 1.
+- Apply the same usable-old-stage guard to stage transitions.
+- Restrict `HIRINGCAFE_BASE_URL` to HTTPS; local plaintext overrides are intentionally not supported.
 - Pin CI actions to immutable commit SHAs, grant only `contents: read`, and cap the job at 10 minutes.
 
 #### Out of scope
@@ -1268,7 +1271,10 @@ Close resilience findings found by the production re-review:
 
 - Corrupt and wrong-schema cache entries self-heal without fabricating data.
 - Legacy saved-job documents cannot reach deletion with an unknown stage.
+- Legacy saved-job documents cannot reach stage mutation with an unknown old stage.
 - Oversized external responses fail with a bounded-read error.
+- Offline anonymous calls produce an exit-1 diagnostic rather than a traceback.
+- Configured non-HTTPS base URLs are rejected before any credential-bearing request.
 - CI remains least-privilege, time-bounded, and immutable-action-pinned.
 - Tests, lint, formatting, pre-commit, and package build pass.
 

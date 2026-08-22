@@ -6,9 +6,10 @@ import urllib.parse
 from html.parser import HTMLParser
 from urllib.request import urlopen
 
+from hiringcafe_cli.http_client import configured_base_url
 from hiringcafe_cli.io_limits import read_limited
 
-BASE_URL = os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com")
+BASE_URL = configured_base_url()
 SEARCH_STATE = {"searchQuery": "python developer"}
 TIMEOUT_SECONDS = 30
 

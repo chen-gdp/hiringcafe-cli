@@ -22,6 +22,8 @@ def change_stage(object_id: str, stage: str) -> None:
         raise LookupError(f"saved job not found: {object_id}")
     fields = decode_firestore_fields(document.get("fields", {}))
     old_stage = fields.get("stage")
+    if old_stage not in VALID_STAGES:
+        raise LookupError(f"saved job has no usable stage: {object_id}")
     web = WebClient()
     web.marketplace_stage(object_id, credentials["idToken"], stage)
     saved_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

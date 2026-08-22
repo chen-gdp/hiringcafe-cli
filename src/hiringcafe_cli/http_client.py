@@ -55,8 +55,16 @@ class HireCafeTransportError(RuntimeError):
 
 
 def configured_base_url() -> str:
-    """Return the configured anonymous web base URL without a trailing slash."""
-    return os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com").rstrip("/")
+    """Return the configured HTTPS anonymous web base URL without a trailing slash.
+
+    Raises:
+        ValueError: If the configured URL is not HTTPS.
+    """
+    base_url = os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com").rstrip("/")
+    parsed = urllib.parse.urlsplit(base_url)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.username is not None or parsed.password is not None:
+        raise ValueError("HIRINGCAFE_BASE_URL must use HTTPS")
+    return base_url
 
 
 def retryable(error: Exception) -> bool:
@@ -124,7 +132,7 @@ class WebClient:
         """Initialize the client.
 
         Args:
-            base_url: Base URL; defaults to ``HIRINGCAFE_BASE_URL`` or production.
+            base_url: HTTPS base URL; defaults to ``HIRINGCAFE_BASE_URL`` or production.
             timeout: Per-request timeout in seconds.
         """
         self.base_url = base_url.rstrip("/") if base_url else configured_base_url()

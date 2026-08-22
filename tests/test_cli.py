@@ -108,3 +108,27 @@ def test_cli_rate_limit_exits_three(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert "HTTP 429" in captured.err
+
+
+def test_cli_transport_failure_exits_one(monkeypatch, capsys):
+    """Condition: anonymous search ultimately cannot reach HiringCafe. Expected: exit 1 without a traceback."""
+    from urllib.error import URLError
+
+    from hiringcafe_cli import main
+    from hiringcafe_cli.http_client import HireCafeTransportError
+
+    class FakeClient:
+        @staticmethod
+        def search_page(state, page):
+            raise HireCafeTransportError("search", URLError("offline"))
+
+    monkeypatch.setattr("hiringcafe_cli.search.WebClient", FakeClient)
+    try:
+        main(["search", "engineer"])
+    except SystemExit as error:
+        assert error.code == 1
+    else:
+        raise AssertionError("transport failure should return an exit code")
+
+    captured = capsys.readouterr()
+    assert "transport failed" in captured.err

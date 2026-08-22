@@ -59,6 +59,8 @@ def test_web_client_rejects_oversized_response(monkeypatch):
 
     class OversizedResponse(io.BytesIO):
         def read(self, size=-1):
+            if size < 0:
+                raise AssertionError("response must be read with a bounded size")
             return b"x" * size
 
     monkeypatch.setattr(WebClient, "urlopen", staticmethod(lambda request, timeout: OversizedResponse()))
@@ -66,6 +68,19 @@ def test_web_client_rejects_oversized_response(monkeypatch):
 
     with pytest.raises(ValueError, match="search response exceeds"):
         client.search_page({}, 0)
+
+
+def test_web_client_rejects_non_https_configured_base_url(monkeypatch):
+    """Condition: the configured base URL uses a non-HTTPS or credential-bearing form.
+
+    Expected: configuration fails before a request can leak authority material or send a token to that URL.
+    """
+    monkeypatch.setenv("HIRINGCAFE_BASE_URL", "http://example.test")
+    with pytest.raises(ValueError, match="HIRINGCAFE_BASE_URL must use HTTPS"):
+        WebClient()
+    monkeypatch.setenv("HIRINGCAFE_BASE_URL", "https://user:secret@example.test")
+    with pytest.raises(ValueError, match="HIRINGCAFE_BASE_URL must use HTTPS"):
+        WebClient()
 
 
 def test_web_client_rejects_missing_required_page_property(monkeypatch):
