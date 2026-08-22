@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation in progress from the `pypi` GitHub environment and registered trusted publisher. Publish the standard library Python package to PyPI.
+Implemented and merged. The `pypi` GitHub environment and registered trusted publisher are configured; publishing begins when the first matching immutable `v*` tag is pushed.
 
 ## Release channel decision
 
