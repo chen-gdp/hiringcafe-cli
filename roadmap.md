@@ -39,8 +39,8 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 6.4 Agent-focused README | Merged | Implemented in PR #24. |
 | 6.5 Roadmap status hygiene | Merged | Implemented in PR #25. |
 | 7.1 Saved-job write integrity | Open | Production-blocking integrity fix. |
-| 7.2 Cache isolation and hardening | Open | Recovery PR #29 lands reviewed PR #27 after stack auto-close. |
-| 7.3 Python 3.11-3.14 support | Open | Recovery PR #29 lands reviewed PR #28 after stack auto-close. |
+| 7.2 Cache isolation and hardening | Merged | Implemented in PR #27 and landed through recovery PR #29. |
+| 7.3 Python 3.11-3.14 support | Merged | Implemented in PR #28 and landed through recovery PR #29. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
 | 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
