@@ -8,6 +8,49 @@ Verified against the live site on 2026-08-17 (Asia/Jakarta). HiringCafe has no o
 
 This file is the project source of truth. Every PR must reference one PR spec below. If implementation proves a spec wrong, update this roadmap in the same PR before changing code.
 
+## Implementation status
+
+Statuses are the audit source for agents and contributors. Update this table in the same PR that changes a PR's state.
+
+| PR | Status | Notes |
+|---|---|---|
+| 0.1 Minimal CLI package | Merged | Implemented in PR #1. |
+| 0.2 Live endpoint regression probe | Merged | Implemented in PR #3. |
+| 1.1 HTTP and SSR client | Merged | Implemented in PR #5. |
+| 1.2 Search state contract | Merged | Implemented in PR #7. |
+| 1.3 `search` command | Merged | Implemented in PR #9. |
+| 1.4 `count` command | Merged | Implemented in PR #10. |
+| 1.5 `job show` command | Merged | Implemented in PR #11. |
+| 2.1 Firebase session, import, and email login | Merged | Implemented in PR #12. |
+| 2.2 `auth status` | Merged | Implemented in PR #12. |
+| 2.3 `auth login` browser flow | Deferred | Blocked on a verified browser OAuth route and localhost authorization behavior. |
+| 2.4 `auth logout` | Merged | Implemented in PR #12. |
+| 3.1 Saved-job models | Merged | Implemented in PR #13. |
+| 3.2 `saved-jobs list` | Merged | Implemented in PR #12. |
+| 3.3 `saved-jobs save` | Merged | Implemented in PR #13. |
+| 3.4 `saved-jobs stage` | Merged | Implemented in PR #14. |
+| 3.5 `saved-jobs remove` | Merged | Implemented in PR #15. |
+| 4.1 Multi-page search | Merged | Implemented in PR #16. |
+| 4.2 Retry policy | Merged | Implemented in PR #17. |
+| 5.1 Anonymous read cache | Merged | Implemented in PR #18. |
+| 6.1 Public repository baseline | Merged | Implemented in PR #20. |
+| 6.2 CI, Ruff, and pre-commit | Merged | Implemented in PR #22. |
+| 6.3 Secure session storage | Merged | Implemented in PR #21. |
+| 6.4 Agent-focused README | Merged | Implemented in PR #24. |
+| 6.5 Roadmap status hygiene | Merged | Implemented in PR #25. |
+| 7.1 Saved-job write integrity | Open | Production-blocking integrity fix. |
+| 7.2 Cache isolation and hardening | Open | Production-blocking cache key/write fixes. |
+| 7.3 Python 3.11-3.14 support | Open | Production-blocking compatibility matrix. |
+| 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
+| 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
+| 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
+| 8.4 Search filters and facets | Deferred | Requires a captured working searchState or exact facet contract. |
+| 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
+| 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
+| 8.7 Browser OAuth login | Deferred | Same blocker as PR 2.3. |
+| 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
+
+
 ## Product goal
 
 Provide a deterministic CLI for humans and autonomous agents to:
@@ -27,7 +70,7 @@ Provide a deterministic CLI for humans and autonomous agents to:
 
 ## Runtime decision
 
-Use Python 3.12+. Phase 0/1 uses only the standard library (`urllib`, `json`, `html.parser`). Phase 2/3 uses documented Google REST endpoints directly — Firebase Identity Toolkit for token refresh and the Firestore REST API for `savedJobs` — so there is no SDK dependency and no service account. The `firebase-admin` SDK is explicitly wrong here: it authenticates as a project admin, while this CLI must act as the signed-in user.
+Use Python 3.11+. Phase 0/1 uses only the standard library (`urllib`, `json`, `html.parser`). Phase 2/3 uses documented Google REST endpoints directly — Firebase Identity Toolkit for token refresh and the Firestore REST API for `savedJobs` — so there is no SDK dependency and no service account. The `firebase-admin` SDK is explicitly wrong here: it authenticates as a project admin, while this CLI must act as the signed-in user.
 
 Dependencies are allowed only when a PR spec names the reason. The initial package has no dependencies and no framework.
 
@@ -1109,3 +1152,109 @@ Make the public README immediately useful to autonomous agents:
 - README commands match the implemented CLI surface.
 - Security, cache, retry, local-data, and exit-code statements remain accurate.
 - Markdown/pre-commit checks pass.
+
+### PR 6.5 — Roadmap status hygiene
+
+#### Spec
+
+Make roadmap completion explicit and machine-readable:
+
+- Add an implementation-status table covering every PR 0.1–6.5.
+- Use only `Merged`, `Open`, or `Deferred` statuses.
+- Record the implementing GitHub PR for merged work.
+- Record the blocking reason for deferred work.
+- Require every state-changing PR to update the table in the same change.
+
+#### Out of scope
+
+- Reopening completed behavior.
+- Changing PR scope or adding product features.
+- Automatically syncing statuses from GitHub.
+
+#### Acceptance criteria
+
+- Every roadmap PR has exactly one status row.
+- Statuses match repository history and open/deferred state.
+- Merged rows reference their implementing GitHub PR.
+- Deferred rows state why they are blocked.
+- Pre-commit checks pass.
+
+## Phase 7 — Production hardening
+
+Phase 7 closes the current production-blocking audit findings. It does not expand product scope.
+
+### PR 7.1 — Saved-job write integrity
+
+#### Spec
+
+Keep trusted saved-job fields authoritative when hydrating a job before a Firestore merge-write:
+
+- Expand the sanitized hydrated job first.
+- Set `objectID`, `owner`, `stage`, `dateSaved`, `isHidden`, `stageHistory`, and `counted_milestones` after it.
+- Preserve removal of private user-tracking arrays.
+- Add a regression test with malicious values in the hydrated source payload.
+
+#### Out of scope
+
+- Changing the document shape, stage transitions, or marketplace synchronization.
+
+#### Acceptance criteria
+
+- A hydrated payload cannot override ownership, identity, stage, timestamps, visibility, or tracking history.
+- Existing save tests and quality gates pass.
+
+### PR 7.2 — Cache isolation and hardening
+
+#### Spec
+
+Close cache isolation and file-write race findings:
+
+- Key search and job-description caches by the active `WebClient.base_url`, not a hardcoded production hostname.
+- Write cache entries through a private unpredictable temporary file, force mode `0600` before writing, flush and sync it, atomically replace the destination, and remove the temporary file on failure.
+- Preserve cache versioning, TTL behavior, corruption handling, and owner-only directory expectations.
+
+#### Out of scope
+
+- Conditional HTTP revalidation, authenticated caching, background refresh, or a new cache format.
+
+#### Acceptance criteria
+
+- Identical requests against different configured base URLs never share entries.
+- No interval exists where a new cache file is group/world readable.
+- Failed writes do not leave temporary files or replace valid entries.
+- Existing cache behavior and quality gates pass.
+
+### PR 7.3 — Python 3.11-3.14 support
+
+#### Spec
+
+Make the stdlib-only package support the user-requested Python matrix:
+
+- Require Python `>=3.11`.
+- Keep runtime dependencies empty.
+- Replace Python-3.12-only standard-library use with 3.11-compatible equivalents.
+- Run CI on Python 3.11, 3.13, and 3.14 in addition to 3.12.
+- Update documentation and agent rules to the supported range.
+
+#### Out of scope
+
+- Shipping interpreter-specific wheels, adding compatibility dependencies, or supporting Python 3.10 or earlier.
+
+#### Acceptance criteria
+
+- CI passes the complete 3.11-3.14 matrix.
+- Package metadata, linter target, documentation, and implementation agree.
+- Existing tests and package build pass.
+
+## Phase 8 — Post-hardening follow-ups
+
+These are intentionally deferred until Phase 7 is merged. Each item needs its own PR spec before implementation; do not bundle unrelated work.
+
+- 8.1 `--json` coverage for mutations and auth commands after the schema is agreed with agent users.
+- 8.2 Multi-page JSONL cache reuse plus duplicate-ID handling across pages.
+- 8.3 Tagged releases, build artifacts, and a chosen distribution channel.
+- 8.4 Filter flags and facets only after a working `searchState` or exact facet contract is captured.
+- 8.5 Tracker search and saved-job notes/tags/journal only after authenticated response captures are verified.
+- 8.6 Saved-job list pagination after cursor semantics or a higher-limit contract is verified.
+- 8.7 Browser OAuth login, inheriting the PR 2.3 verification blocker.
+- 8.8 Additional CI assurance (for example mypy, Dependabot, or CodeQL) after the desired scope is selected.

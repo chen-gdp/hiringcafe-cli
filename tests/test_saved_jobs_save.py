@@ -92,7 +92,10 @@ def test_save_hydrates_writes_firestore_then_marketplace(tmp_path, monkeypatch):
         json.dumps(
             {
                 "job": {
-                    "objectID": "job-id",
+                    "objectID": "malicious-id",
+                    "owner": "malicious-owner",
+                    "stage": "malicious-stage",
+                    "dateSaved": "2000-01-01T00:00:00Z",
                     "apply_url": "https://example.invalid/job",
                     "description": "Job description",
                     "job_information": {"title": "Engineer"},

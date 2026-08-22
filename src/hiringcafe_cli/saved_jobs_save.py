@@ -23,6 +23,7 @@ def save(object_id: str, stage: str) -> None:
     hydrated = WebClient().job_description(object_id)
     saved_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     values = {
+        **_clean_job(hydrated),
         "objectID": object_id,
         "isHidden": stage == "hidden",
         "owner": credentials["userId"],
@@ -30,7 +31,6 @@ def save(object_id: str, stage: str) -> None:
         "stage": stage,
         "stageHistory": {"appendMissingElements": [{"stage": stage, "at": saved_at}]},
         "counted_milestones": {},
-        **_clean_job(hydrated),
     }
     FirestoreClient(credentials["idToken"]).save(f"{credentials['userId']}_{object_id}", values)
     if hydrated.get("source") != "import":
