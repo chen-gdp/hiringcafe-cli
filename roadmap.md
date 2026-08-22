@@ -40,7 +40,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 6.5 Roadmap status hygiene | Merged | Implemented in PR #25. |
 | 7.1 Saved-job write integrity | Open | Production-blocking integrity fix. |
 | 7.2 Cache isolation and hardening | Open | Implemented by PR #27, stacked on PR #26. |
-| 7.3 Python 3.11-3.14 support | Open | Production-blocking compatibility matrix. |
+| 7.3 Python 3.11-3.14 support | Open | Implemented by PR #28, stacked on PR #27. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
 | 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
