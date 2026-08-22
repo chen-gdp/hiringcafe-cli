@@ -84,19 +84,7 @@ jobs:
           name: release-artifacts
           path: dist
       - name: Verify artifact checksums
-        run: python - <<'PY'
-          from pathlib import Path
-          import hashlib
-
-          expected = {}
-          for line in Path("dist/hiringcafe-cli.sha256").read_text().splitlines():
-              digest, name = line.split("  ", 1)
-              expected[name] = digest
-          for name, digest in expected.items():
-              data = Path("dist", name).read_bytes()
-              if hashlib.sha256(data).hexdigest() != digest:
-                  raise SystemExit(f"checksum mismatch: {name}")
-          PY
+        run: python scripts/check_release_checksums.py dist
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           repository-url: https://upload.pypi.org/legacy/
@@ -113,19 +101,7 @@ jobs:
           name: release-artifacts
           path: dist
       - name: Verify artifact checksums
-        run: python - <<'PY'
-          from pathlib import Path
-          import hashlib
-
-          expected = {}
-          for line in Path("dist/hiringcafe-cli.sha256").read_text().splitlines():
-              digest, name = line.split("  ", 1)
-              expected[name] = digest
-          for name, digest in expected.items():
-              data = Path("dist", name).read_bytes()
-              if hashlib.sha256(data).hexdigest() != digest:
-                  raise SystemExit(f"checksum mismatch: {name}")
-          PY
+        run: python scripts/check_release_checksums.py dist
       - run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes "Release artifacts built from $GITHUB_SHA."
         env:
           GH_TOKEN: ${{ github.token }}
