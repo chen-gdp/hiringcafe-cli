@@ -8,15 +8,17 @@ license-files = ["LICENSE"]
 authors = [
     { name = "chen-gdp", email = "146709874+chen-gdp@users.noreply.github.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = []
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [project.urls]
@@ -41,7 +43,7 @@ build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py311"
 exclude = [".venv", "dist", "__pycache__"]
 
 [tool.ruff.lint]
@@ -49,6 +51,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 ignore = [
     "S310", # all transport URLs are fixed HTTPS constants or verified site URLs
     "S311", # random jitter is for retry timing, not cryptography
+    "UP017", # timezone.utc is the Python 3.11-compatible spelling
 ]
 
 [tool.ruff.lint.per-file-ignores]

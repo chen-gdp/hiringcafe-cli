@@ -5,7 +5,7 @@ import os
 import sys
 
 from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
-from hiringcafe_cli.http_client import WebClient
+from hiringcafe_cli.http_client import WebClient, configured_base_url
 
 JOB_TTL = 86400
 
@@ -20,14 +20,15 @@ def show(object_id: str, no_cache: bool = False, cache_ttl: int | None = None) -
         Stable version-1 job-detail envelope.
     """
     cache_root = active_cache_root()
-    key = ("job", "https://hiringcafe.com", object_id)
+    client = WebClient()
+    key = ("job", configured_base_url(), object_id)
     ttl = JOB_TTL if cache_ttl is None else cache_ttl
     enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
     raw = cache_read(key, ttl, cache_root, enabled=enabled)
     if raw is not None:
         job = raw
     else:
-        job = WebClient().job_description(object_id)
+        job = client.job_description(object_id)
         cache_write(key, job, ttl, cache_root, enabled=enabled)
     if not job:
         raise ValueError("job-description response has no job object")

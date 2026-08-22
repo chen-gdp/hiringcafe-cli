@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -56,18 +57,26 @@ class CacheStore:
         return payload["value"]
 
     def write(self, key: tuple, value: dict, ttl: int) -> None:
+        """Atomically write an owner-only cache entry."""
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self.root.exists():
             os.chmod(self.root, 0o700)
-        temporary = self.path(key).with_suffix(".tmp")
-        temporary.write_text(
-            json.dumps(
-                {"version": VERSION, "expiresAt": int(time.time() + ttl), "value": value}, separators=(",", ":")
-            ),
-            encoding="utf-8",
-        )
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, self.path(key))
+        destination = self.path(key)
+        descriptor, temporary_name = tempfile.mkstemp(prefix=f"{destination.name}.", suffix=".tmp", dir=self.root)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+                os.chmod(temporary_name, 0o600)
+                json.dump(
+                    {"version": VERSION, "expiresAt": int(time.time() + ttl), "value": value},
+                    output,
+                    separators=(",", ":"),
+                )
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary_name, destination)
+        except BaseException:
+            Path(temporary_name).unlink(missing_ok=True)
+            raise
 
     def purge(self) -> None:
         if not self.root.exists():

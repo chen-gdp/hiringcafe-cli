@@ -4,7 +4,7 @@ import json
 import os
 
 from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
-from hiringcafe_cli.http_client import WebClient
+from hiringcafe_cli.http_client import WebClient, configured_base_url
 from hiringcafe_cli.search_state import InvalidSearchState, build_search_state
 
 SEARCH_TTL = 900
@@ -58,13 +58,14 @@ def search(
     """
     state = build_search_state(query=query, raw_search_state=raw_search_state)
     cache_root = active_cache_root()
-    key = ("search", "https://hiringcafe.com", json.dumps(state, sort_keys=True), page)
+    base_url = configured_base_url()
+    key = ("search", base_url, json.dumps(state, sort_keys=True), page)
     enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
     ttl = SEARCH_TTL if cache_ttl is None else cache_ttl
     cached = cache_read(key, ttl, cache_root, enabled=enabled)
     if cached is not None:
         return cached
-    properties = fetch_page(state, page)
+    properties = WebClient().search_page(state, page)
     if properties.get("ssrError") is not None:
         raise ValueError(f"HiringCafe search error: {properties['ssrError']}")
     hits = properties.get("ssrHits")

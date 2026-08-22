@@ -1,7 +1,7 @@
 """Save a HiringCafe job to the signed-in user's tracker."""
 
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from hiringcafe_cli.auth import store
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseClient
@@ -21,7 +21,7 @@ def save(object_id: str, stage: str) -> None:
     """Hydrate, merge-write Firestore, then sync the marketplace stage."""
     credentials = FirebaseClient().refresh(store().load().refresh_token)
     hydrated = WebClient().job_description(object_id)
-    saved_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    saved_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     values = {
         **_clean_job(hydrated),
         "objectID": object_id,

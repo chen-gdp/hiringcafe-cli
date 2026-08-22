@@ -52,6 +52,11 @@ class HireCafeTransportError(RuntimeError):
         super().__init__(f"{endpoint} transport failed: {cause}")
 
 
+def configured_base_url() -> str:
+    """Return the configured anonymous web base URL without a trailing slash."""
+    return os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com").rstrip("/")
+
+
 def retryable(error: Exception) -> bool:
     """Classify whether an anonymous GET error may be retried."""
     return isinstance(error, HireCafeTransportError) or (
@@ -120,7 +125,7 @@ class WebClient:
             base_url: Base URL; defaults to ``HIRINGCAFE_BASE_URL`` or production.
             timeout: Per-request timeout in seconds.
         """
-        self.base_url = (base_url or os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com")).rstrip("/")
+        self.base_url = base_url.rstrip("/") if base_url else configured_base_url()
         self.timeout = timeout
         self.retry_policy = RetryPolicy(timeout=timeout)
 

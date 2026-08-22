@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 
 from hiringcafe_cli import main, search
 from hiringcafe_cli.cache import CacheStore, cache_read, cache_write, default_cache_root
@@ -37,8 +38,8 @@ def test_cache_keys_and_purge(tmp_path):
     """
     search_key = ("search", "base", "state", 0)
     job_key = ("job", "base", "id")
-    cache_write(search_key, {"kind": "search"}, ttl=1, root=tmp_path)
-    cache_write(job_key, {"kind": "job"}, ttl=1, root=tmp_path)
+    cache_write(search_key, {"kind": "search"}, ttl=120, root=tmp_path)
+    cache_write(job_key, {"kind": "job"}, ttl=120, root=tmp_path)
     assert cache_read(search_key, ttl=1, root=tmp_path)["kind"] == "search"
     assert cache_read(job_key, ttl=1, root=tmp_path)["kind"] == "job"
     CacheStore(tmp_path).purge()
@@ -54,6 +55,40 @@ def test_cache_root_is_versioned_and_owner_only(tmp_path):
     root = default_cache_root(tmp_path)
     cache_write(("search", "base", "state", 0), {}, ttl=1, root=root)
     assert root.stat().st_mode & 0o700 == 0o700
+
+
+def test_cache_entries_are_owner_only_and_leave_no_temporary_files(tmp_path):
+    """Condition: a cache entry is written successfully.
+
+    Expected: the final file is owner-only and no temporary file remains.
+    """
+    key = ("search", "base", "state", 0)
+    cache_write(key, {"value": 1}, ttl=1, root=tmp_path)
+    entries = list(tmp_path.iterdir())
+    assert len(entries) == 1
+    assert entries[0].stat().st_mode & 0o777 == 0o600
+
+
+def test_failed_cache_replace_preserves_entry_and_removes_temporary_file(tmp_path, monkeypatch):
+    """Condition: writing a valid entry fails during atomic replacement.
+
+    Expected: the old entry remains and the temporary file is removed.
+    """
+    key = ("search", "base", "state", 0)
+    cache_write(key, {"value": 1}, ttl=1, root=tmp_path)
+
+    def fail_replace(source, destination):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr("hiringcafe_cli.cache.os.replace", fail_replace)
+    try:
+        cache_write(key, {"value": 2}, ttl=1, root=tmp_path)
+    except OSError:
+        pass
+    else:
+        raise AssertionError("write should fail")
+    assert cache_read(key, ttl=1, root=tmp_path) == {"value": 1}
+    assert list(tmp_path.iterdir()) == [CacheStore(tmp_path).path(key)]
 
 
 def test_cache_purge_command_removes_entries(tmp_path, monkeypatch, capsys):
@@ -75,6 +110,7 @@ def test_cache_purge_command_removes_entries(tmp_path, monkeypatch, capsys):
 
 class FakeClient:
     def __init__(self):
+        self.base_url = "https://hiringcafe.com"
         self.calls = []
 
     def search_page(self, state, page):
@@ -107,6 +143,43 @@ def test_cli_repeat_search_uses_cache_without_http(tmp_path, monkeypatch, capsys
     assert client.calls == [({"searchQuery": "python"}, 0)]
     assert "cache miss" in captured.err
     assert "cache hit" in captured.err
+
+
+def test_search_cache_is_isolated_by_configured_base_url(tmp_path, monkeypatch):
+    """Condition: identical searches run against two configured base URLs.
+
+    Expected: each URL gets its own cache entry and HTTP fetch sequence.
+    """
+    clients = []
+    calls = []
+
+    class BaseUrlClient:
+        def __init__(self, base_url):
+            self.base_url = base_url
+
+        def search_page(self, state, page):
+            calls.append((self.base_url, state, page))
+            return {
+                "ssrHits": [{"objectID": f"{self.base_url}-job", "job_information": {"title": "Engineer"}}],
+                "ssrPage": page,
+                "ssrTotalCount": 1,
+                "ssrCompanyCount": 1,
+                "ssrPageSize": 40,
+                "ssrIsLastPage": True,
+            }
+
+    monkeypatch.setenv("HIRINGCAFE_CACHE_HOME", str(tmp_path))
+    monkeypatch.setattr(
+        search,
+        "WebClient",
+        lambda: clients.append(BaseUrlClient(os.environ["HIRINGCAFE_BASE_URL"])) or clients[-1],
+    )
+    for base_url in ("https://one.test", "https://two.test"):
+        monkeypatch.setenv("HIRINGCAFE_BASE_URL", base_url)
+        for _ in range(2):
+            result = search.search("python", 0)
+            assert result["result"]["jobs"][0]["id"] == f"{base_url}-job"
+    assert len(calls) == 2
 
 
 def test_cli_count_reuses_cached_search_and_custom_ttl(tmp_path, monkeypatch, capsys):
