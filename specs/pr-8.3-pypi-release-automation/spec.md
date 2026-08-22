@@ -2,7 +2,7 @@
 
 ## Status
 
-Deferred until Milestone 8 begins. The implementation contract is chosen: publish the standard library Python package to PyPI.
+Implementation in progress from the `pypi` GitHub environment and registered trusted publisher. Publish the standard library Python package to PyPI.
 
 ## Release channel decision
 
