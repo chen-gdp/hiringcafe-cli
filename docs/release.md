@@ -4,7 +4,7 @@
 
 1. Create a protected GitHub environment named `pypi`.
 2. In that environment, set **Deployment branches and tags** to **Selected branches and tags** and add the pattern `v*`.
-3. Register the PyPI trusted publisher for `chen-gdp/hiringcafe-cli` with workflow `release.yaml` and environment `pypi`.
+3. Register the PyPI trusted publisher for `chen-gdp/hiringcafe-cli` with workflow `release.yml` and environment `pypi`.
 
 ## Release
 
