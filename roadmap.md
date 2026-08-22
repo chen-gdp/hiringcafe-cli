@@ -48,7 +48,8 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3.1 Release test stability | Merged | Implemented in PR #41. |
 | 8.3.2 PyPI checksum isolation | Merged | Implemented in PR #42; uncovered checksum verifier path handling. |
 | 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
-| 8.3.4 Runtime package version sync | Ready | Fix installed `--version` metadata drift and release `0.1.5`. |
+| 8.3.4 Runtime package version sync | Merged | Implemented in PR #44; released as `v0.1.5`. |
+| 8.3.5 Published-package README guide | Open | Add a PyPI-first installation guide, command reference, and table of contents. |
 | 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
@@ -1320,6 +1321,30 @@ Publish versioned releases to PyPI:
 - PyPI installation works on Python 3.11–3.14 with no runtime dependencies.
 - No credential enters the workflow or artifacts.
 - Documentation and release runbook match the implemented workflow.
+
+### PR 8.3.5 — Published-package README guide
+
+#### Spec
+
+Make the public README match the now-published PyPI package:
+
+- Add PyPI, Python-version, CI, and license badges.
+- Put persistent and one-shot installation commands before advanced usage.
+- Add a table of contents.
+- Consolidate the supported command surface into a scannable reference.
+- Keep agent automation, auth safety, local storage, caching, and exit-code contracts accurate.
+- Correct PR 8.3.4 roadmap status to merged.
+
+#### Out of scope
+
+- New CLI behavior, new API endpoints, screenshots, and release workflow changes.
+
+#### Acceptance criteria
+
+- Every documented command exists in the installed CLI.
+- Installation instructions work for the published PyPI package.
+- The unofficial-client and beta-status warnings remain visible.
+- Markdown/pre-commit checks pass.
 
 ### PR 8.4 — Search filters and facets
 
