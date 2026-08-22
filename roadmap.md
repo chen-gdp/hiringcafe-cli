@@ -8,6 +8,37 @@ Verified against the live site on 2026-08-17 (Asia/Jakarta). HiringCafe has no o
 
 This file is the project source of truth. Every PR must reference one PR spec below. If implementation proves a spec wrong, update this roadmap in the same PR before changing code.
 
+## Implementation status
+
+Statuses are the audit source for agents and contributors. Update this table in the same PR that changes a PR's state.
+
+| PR | Status | Notes |
+|---|---|---|
+| 0.1 Minimal CLI package | Merged | Implemented in PR #1. |
+| 0.2 Live endpoint regression probe | Merged | Implemented in PR #3. |
+| 1.1 HTTP and SSR client | Merged | Implemented in PR #5. |
+| 1.2 Search state contract | Merged | Implemented in PR #7. |
+| 1.3 `search` command | Merged | Implemented in PR #9. |
+| 1.4 `count` command | Merged | Implemented in PR #10. |
+| 1.5 `job show` command | Merged | Implemented in PR #11. |
+| 2.1 Firebase session, import, and email login | Merged | Implemented in PR #12. |
+| 2.2 `auth status` | Merged | Implemented in PR #12. |
+| 2.3 `auth login` browser flow | Deferred | Blocked on a verified browser OAuth route and localhost authorization behavior. |
+| 2.4 `auth logout` | Merged | Implemented in PR #12. |
+| 3.1 Saved-job models | Merged | Implemented in PR #13. |
+| 3.2 `saved-jobs list` | Merged | Implemented in PR #12. |
+| 3.3 `saved-jobs save` | Merged | Implemented in PR #13. |
+| 3.4 `saved-jobs stage` | Merged | Implemented in PR #14. |
+| 3.5 `saved-jobs remove` | Merged | Implemented in PR #15. |
+| 4.1 Multi-page search | Merged | Implemented in PR #16. |
+| 4.2 Retry policy | Merged | Implemented in PR #17. |
+| 5.1 Anonymous read cache | Merged | Implemented in PR #18. |
+| 6.1 Public repository baseline | Merged | Implemented in PR #20. |
+| 6.2 CI, Ruff, and pre-commit | Merged | Implemented in PR #22. |
+| 6.3 Secure session storage | Merged | Implemented in PR #21. |
+| 6.4 Agent-focused README | Open | PR #24 is open with passing CI. |
+| 6.5 Roadmap status hygiene | Open | This audit table and its same-PR update rule. |
+
 ## Product goal
 
 Provide a deterministic CLI for humans and autonomous agents to:
@@ -1109,3 +1140,29 @@ Make the public README immediately useful to autonomous agents:
 - README commands match the implemented CLI surface.
 - Security, cache, retry, local-data, and exit-code statements remain accurate.
 - Markdown/pre-commit checks pass.
+
+### PR 6.5 — Roadmap status hygiene
+
+#### Spec
+
+Make roadmap completion explicit and machine-readable:
+
+- Add an implementation-status table covering every PR 0.1–6.5.
+- Use only `Merged`, `Open`, or `Deferred` statuses.
+- Record the implementing GitHub PR for merged work.
+- Record the blocking reason for deferred work.
+- Require every state-changing PR to update the table in the same change.
+
+#### Out of scope
+
+- Reopening completed behavior.
+- Changing PR scope or adding product features.
+- Automatically syncing statuses from GitHub.
+
+#### Acceptance criteria
+
+- Every roadmap PR has exactly one status row.
+- Statuses match repository history and open/deferred state.
+- Merged rows reference their implementing GitHub PR.
+- Deferred rows state why they are blocked.
+- Pre-commit checks pass.
