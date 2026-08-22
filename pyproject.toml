@@ -1,6 +1,6 @@
 [project]
 name = "hiringcafe-cli"
-version = "0.1.3"
+version = "0.1.4"
 description = "Spec-driven Python CLI for Hiring Cafe job search and saved-job tracking"
 readme = "README.md"
 license = "MIT"
