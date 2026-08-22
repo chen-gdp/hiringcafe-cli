@@ -84,8 +84,10 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+      - name: Move checksum out of the PyPI upload directory
+        run: mv dist/hiringcafe-cli.sha256 .
       - name: Verify artifact checksums
-        run: python scripts/check_release_checksums.py dist
+        run: python scripts/check_release_checksums.py .
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           repository-url: https://upload.pypi.org/legacy/
