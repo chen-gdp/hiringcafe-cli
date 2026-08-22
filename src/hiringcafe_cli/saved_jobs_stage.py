@@ -1,7 +1,7 @@
 """Move a saved HiringCafe job between tracker stages."""
 
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from hiringcafe_cli.auth import store
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseClient
@@ -24,7 +24,7 @@ def change_stage(object_id: str, stage: str) -> None:
     old_stage = fields.get("stage")
     web = WebClient()
     web.marketplace_stage(object_id, credentials["idToken"], stage)
-    saved_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    saved_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     values = {
         "stage": stage,
         "dateSaved": saved_at,

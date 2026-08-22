@@ -7,7 +7,7 @@
 - If implementation disproves a roadmap/spec assumption, update the roadmap and spec in the same PR before changing code.
 - Do not implement an endpoint merely because it appears in the route appendix. Use only dependencies whose spec says they are verified and usable.
 - Keep runtime dependencies empty unless the roadmap and target PR spec explicitly require and justify one.
-- Python 3.12+ and the standard library are the default platform.
+- Python 3.11–3.14 and the standard library are the default platform.
 
 ## Architecture
 
