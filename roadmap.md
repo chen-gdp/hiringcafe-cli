@@ -38,9 +38,10 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 6.3 Secure session storage | Merged | Implemented in PR #21. |
 | 6.4 Agent-focused README | Merged | Implemented in PR #24. |
 | 6.5 Roadmap status hygiene | Merged | Implemented in PR #25. |
-| 7.1 Saved-job write integrity | Open | Production-blocking integrity fix. |
+| 7.1 Saved-job write integrity | Merged | Implemented in PR #26. |
 | 7.2 Cache isolation and hardening | Merged | Implemented in PR #27 and landed through recovery PR #29. |
 | 7.3 Python 3.11-3.14 support | Merged | Implemented in PR #28 and landed through recovery PR #29. |
+| 7.4 Production resilience follow-ups | Open | Corrupt-cache recovery, bounded reads, legacy-stage guards, HTTPS-only overrides, transport diagnostics, and CI hardening. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
 | 8.3 Release automation | Deferred | Add after Phase 7 blockers; release channel chosen. |
@@ -807,7 +808,7 @@ Acceptance criteria:
 - `--no-cache` and `cache purge` never read or preserve old entries.
 - Cache keys distinguish base URL, search state, page, and object ID.
 - No bearer token, refresh token, cookie, UID, email, or authenticated response is written.
-- Cache corruption is reported and does not produce fabricated results.
+- A corrupt cache entry is discarded and treated as a miss; it never produces fabricated results.
 
 ## Deferred
 
@@ -1091,6 +1092,7 @@ Add automated quality gates without changing CLI behavior:
 
 - Add Ruff formatting/linting and pre-commit configuration.
 - Add GitHub Actions CI for locked sync, format check, lint, tests, and package build.
+- Pin workflow actions to immutable commit SHAs.
 - Apply only mechanical code fixes required by the configured rules.
 
 #### Out of scope
@@ -1103,6 +1105,7 @@ Add automated quality gates without changing CLI behavior:
 
 - Pre-commit runs Ruff and standard hygiene hooks locally.
 - CI runs on pull requests and pushes to `main`.
+- CI has least-privilege permissions, a bounded timeout, and SHA-pinned actions.
 - Existing source passes format/lint checks.
 - Existing tests and package build pass.
 
@@ -1245,6 +1248,35 @@ Make the stdlib-only package support the user-requested Python matrix:
 - CI passes the complete 3.11-3.14 matrix.
 - Package metadata, linter target, documentation, and implementation agree.
 - Existing tests and package build pass.
+
+### PR 7.4 — Production resilience follow-ups
+
+#### Spec
+
+Close resilience findings found by the production re-review:
+
+- Treat invalid JSON or an incompatible cache schema as a cache miss, delete the entry, and continue.
+- Reject a saved-job document whose `stage` is missing or unsupported before marketplace deletion.
+- Bound HiringCafe, Firebase, and Firestore response reads at 8 MiB.
+- Catch anonymous HiringCafe transport failures and map them to exit 1.
+- Apply the same usable-old-stage guard to stage transitions.
+- Restrict `HIRINGCAFE_BASE_URL` to HTTPS; local plaintext overrides are intentionally not supported.
+- Pin CI actions to immutable commit SHAs, grant only `contents: read`, and cap the job at 10 minutes.
+
+#### Out of scope
+
+- Streaming parsers, spooled response files, authenticated caching, or additional static-analysis jobs.
+
+#### Acceptance criteria
+
+- Corrupt and wrong-schema cache entries self-heal without fabricating data.
+- Legacy saved-job documents cannot reach deletion with an unknown stage.
+- Legacy saved-job documents cannot reach stage mutation with an unknown old stage.
+- Oversized external responses fail with a bounded-read error.
+- Offline anonymous calls produce an exit-1 diagnostic rather than a traceback.
+- Configured non-HTTPS base URLs are rejected before any credential-bearing request.
+- CI remains least-privilege, time-bounded, and immutable-action-pinned.
+- Tests, lint, formatting, pre-commit, and package build pass.
 
 ## Phase 8 — Post-hardening follow-ups
 

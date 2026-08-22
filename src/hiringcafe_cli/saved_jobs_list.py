@@ -8,6 +8,7 @@ from urllib.request import urlopen
 
 from hiringcafe_cli.auth import store
 from hiringcafe_cli.firebase import FirebaseClient
+from hiringcafe_cli.io_limits import read_limited
 from hiringcafe_cli.saved_jobs import PIPELINE_STAGES, VALID_STAGES, encode_firestore_value, normalize_saved_job
 
 FIRESTORE_DOCUMENTS = "https://firestore.googleapis.com/v1/projects/hiringcafe-ec4d6/databases/(default)/documents"
@@ -83,7 +84,7 @@ class FirestoreClient:
         )
         try:
             with self.urlopen(request, timeout=30) as response:
-                text = response.read().decode("utf-8")
+                text = read_limited(response, "Firestore list").decode("utf-8")
         except urllib.error.HTTPError as error:
             raise FirestoreError(f"Firestore returned HTTP {error.code}") from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
@@ -109,7 +110,7 @@ class FirestoreClient:
         request = urllib.request.Request(f"{FIRESTORE_DOCUMENTS}/{path}", data=body, headers=headers, method=method)
         try:
             with self.urlopen(request, timeout=30) as response:
-                text = response.read().decode("utf-8")
+                text = read_limited(response, "Firestore").decode("utf-8")
         except urllib.error.HTTPError as error:
             raise FirestoreError(f"Firestore returned HTTP {error.code}") from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:

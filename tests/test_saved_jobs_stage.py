@@ -73,6 +73,24 @@ def test_stage_unknown_job_exits_six(tmp_path, monkeypatch):
         assert saved_jobs_stage.run(args()) == 6
 
 
+def test_stage_document_without_usable_stage_exits_six(tmp_path, monkeypatch):
+    """Condition: a legacy saved-job document has no stage.
+
+    Expected: stage exits 6 before marketplace or Firestore writes.
+    """
+    authenticate(tmp_path, monkeypatch)
+    document = firestore_document()
+    del document["fields"]["stage"]
+    monkeypatch.setattr(saved_jobs_stage.FirestoreClient, "get", lambda *_: document)
+    monkeypatch.setattr(saved_jobs_stage.FirestoreClient, "update", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    monkeypatch.setattr(
+        saved_jobs_stage.WebClient, "marketplace_stage", lambda *_: (_ for _ in ()).throw(AssertionError())
+    )
+    with contextlib.redirect_stderr(io.StringIO()) as errors:
+        assert saved_jobs_stage.run(args()) == 6
+    assert "no usable stage" in errors.getvalue()
+
+
 def test_stage_rejected_credential_exits_five(tmp_path, monkeypatch):
     """Condition: Firebase rejects the stored refresh token.
 

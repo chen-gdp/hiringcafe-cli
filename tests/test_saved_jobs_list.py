@@ -19,7 +19,7 @@ class BytesResponse:
     def __exit__(self, *args):
         return False
 
-    def read(self):
+    def read(self, size=-1):
         return self.body
 
 

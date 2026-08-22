@@ -6,7 +6,10 @@ import urllib.parse
 from html.parser import HTMLParser
 from urllib.request import urlopen
 
-BASE_URL = os.environ.get("HIRINGCAFE_BASE_URL", "https://hiringcafe.com")
+from hiringcafe_cli.http_client import configured_base_url
+from hiringcafe_cli.io_limits import read_limited
+
+BASE_URL = configured_base_url()
 SEARCH_STATE = {"searchQuery": "python developer"}
 TIMEOUT_SECONDS = 30
 
@@ -84,7 +87,7 @@ def _get(url: str) -> dict | str:
         },
     )
     with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
-        body = response.read().decode("utf-8")
+        body = read_limited(response, "endpoint probe").decode("utf-8")
     try:
         return json.loads(body)
     except json.JSONDecodeError:
