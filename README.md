@@ -15,10 +15,11 @@ The result is stable JSON/JSONL, explicit exit codes, cached anonymous reads, bo
 Agents can install and verify the CLI in three commands:
 
 ```bash
-uv tool install git+https://github.com/chen-gdp/hiringcafe-cli.git
-hiringcafe --version
+uv tool install hiringcafe-cli
 hiringcafe search "python developer" --page 0 --json
 ```
+
+For persistent installations, use `uv tool install hiringcafe-cli` or `pipx install hiringcafe-cli`.
 
 Feed the output directly to your tooling:
 

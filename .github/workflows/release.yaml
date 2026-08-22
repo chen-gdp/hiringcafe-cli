@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-tag:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          project_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          python - "$version" <<'PY'
+          import re
+          import sys
+
+          version = sys.argv[1]
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", version):
+              raise SystemExit(f"invalid release tag: v{version}")
+          PY
+          test "$version" = "$project_version" || {
+            echo "tag v$version does not match pyproject version $project_version" >&2
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.0.0
+        with:
+          python-version: "3.11"
+      - run: uv build
+      - run: python scripts/verify_release_artifacts.py dist "${{ needs.validate-tag.outputs.version }}"
+      - name: Create checksum file
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          lines = []
+          for path in sorted(Path("dist").iterdir()):
+              if path.suffix not in {".gz", ".whl"}:
+                  continue
+              digest = hashlib.sha256()
+              with path.open("rb") as file:
+                  for block in iter(lambda: file.read(1024 * 1024), b""):
+                      digest.update(block)
+              lines.append(f"{digest.hexdigest()}  {path.name}")
+          Path("dist/hiringcafe-cli.sha256").write_text("\n".join(lines) + "\n")
+          PY
+      - run: python scripts/verify_release_artifacts.py dist "${{ needs.validate-tag.outputs.version }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-artifacts
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    needs: build
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-artifacts
+          path: dist
+      - name: Verify artifact checksums
+        run: python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          expected = {}
+          for line in Path("dist/hiringcafe-cli.sha256").read_text().splitlines():
+              digest, name = line.split("  ", 1)
+              expected[name] = digest
+          for name, digest in expected.items():
+              data = Path("dist", name).read_bytes()
+              if hashlib.sha256(data).hexdigest() != digest:
+                  raise SystemExit(f"checksum mismatch: {name}")
+          PY
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+
+  github-release:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    needs: publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-artifacts
+          path: dist
+      - name: Verify artifact checksums
+        run: python - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          expected = {}
+          for line in Path("dist/hiringcafe-cli.sha256").read_text().splitlines():
+              digest, name = line.split("  ", 1)
+              expected[name] = digest
+          for name, digest in expected.items():
+              data = Path("dist", name).read_bytes()
+              if hashlib.sha256(data).hexdigest() != digest:
+                  raise SystemExit(f"checksum mismatch: {name}")
+          PY
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes "Release artifacts built from $GITHUB_SHA."
+        env:
+          GH_TOKEN: ${{ github.token }}
