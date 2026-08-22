@@ -44,7 +44,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 7.4 Production resilience follow-ups | Merged | Implemented in PR #31. |
 | 8.1 Agent JSON coverage | Deferred | Add after Phase 7 blockers; mutation/auth schema agreed with users. |
 | 8.2 Multi-page cache and duplicate handling | Deferred | Add after Phase 7 blockers; pagination behavior measured. |
-| 8.3 PyPI release automation | In progress | Implementing release workflow, artifact verification, checksums, and Trusted Publishing. |
+| 8.3 PyPI release automation | Merged | Release workflow, artifact verification, checksums, and Trusted Publishing are ready for the first `v*` tag. |
 | 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
