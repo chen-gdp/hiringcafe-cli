@@ -9,6 +9,10 @@
 
 - Kept the checksum manifest out of the PyPI upload directory while retaining it in GitHub release artifacts.
 
+## 0.1.4
+
+- Staged release artifacts so PyPI receives only distributions while GitHub retains checksums.
+
 ## 0.1.2
 
 - First PyPI release.
