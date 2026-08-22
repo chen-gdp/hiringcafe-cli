@@ -38,17 +38,20 @@ class CacheStore:
         if not path.exists():
             print("cache miss", file=sys.stderr)
             return None
+        payload = None
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
-            raise ValueError("corrupt cache entry") from error
-        if (
-            not isinstance(payload, dict)
-            or payload.get("version") != VERSION
-            or not isinstance(payload.get("expiresAt"), int)
-            or not isinstance(payload.get("value"), dict)
+        except (OSError, json.JSONDecodeError):
+            payload = None
+        if not (
+            isinstance(payload, dict)
+            and payload.get("version") == VERSION
+            and isinstance(payload.get("expiresAt"), int)
+            and isinstance(payload.get("value"), dict)
         ):
-            raise ValueError("corrupt cache entry")
+            path.unlink(missing_ok=True)
+            print("cache miss", file=sys.stderr)
+            return None
         if time.time() >= payload["expiresAt"]:
             path.unlink(missing_ok=True)
             print("cache miss", file=sys.stderr)

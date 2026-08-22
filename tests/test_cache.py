@@ -31,6 +31,30 @@ def test_cache_expiry_and_no_cache_bypass(tmp_path, monkeypatch):
     assert cache_read(key, ttl=1, root=tmp_path, enabled=False) is None
 
 
+def test_corrupt_cache_entry_recovers_as_a_miss(tmp_path):
+    """Condition: a cache file contains invalid JSON.
+
+    Expected: the entry is deleted and the same key reports a miss without raising.
+    """
+    key = ("search", "https://hiringcafe.com", '{"query":"python"}', 0)
+    path = CacheStore(tmp_path).path(key)
+    path.write_text("{", encoding="utf-8")
+    assert cache_read(key, ttl=900, root=tmp_path) is None
+    assert not path.exists()
+
+
+def test_wrong_schema_cache_entry_recovers_as_a_miss(tmp_path):
+    """Condition: a cache file has valid JSON but an incompatible schema.
+
+    Expected: the entry is deleted rather than repeatedly failing the same key.
+    """
+    key = ("search", "https://hiringcafe.com", '{"query":"python"}', 0)
+    path = CacheStore(tmp_path).path(key)
+    path.write_text(json.dumps({"version": 99, "expiresAt": 1, "value": []}), encoding="utf-8")
+    assert cache_read(key, ttl=900, root=tmp_path) is None
+    assert not path.exists()
+
+
 def test_cache_keys_and_purge(tmp_path):
     """Condition: different command keys are stored under hashed names.
 

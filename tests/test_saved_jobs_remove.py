@@ -58,6 +58,23 @@ def test_remove_unknown_job_exits_six(tmp_path, monkeypatch):
         assert saved_jobs_remove.run(args(yes=True)) == 6
 
 
+def test_remove_document_without_usable_stage_exits_six(tmp_path, monkeypatch):
+    """Condition: a legacy saved-job document has no stage.
+
+    Expected: removal exits 6 and performs no marketplace mutation.
+    """
+    authenticate(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        saved_jobs_remove.FirestoreClient,
+        "get",
+        lambda *_: {"fields": {"objectID": {"stringValue": "job-id"}}},
+    )
+    monkeypatch.setattr(saved_jobs_remove.WebClient, "remove_job", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    with contextlib.redirect_stderr(io.StringIO()) as errors:
+        assert saved_jobs_remove.run(args(yes=True)) == 6
+    assert "no usable stage" in errors.getvalue()
+
+
 def test_remove_rejected_credential_exits_five(tmp_path, monkeypatch):
     """Condition: Firebase rejects the stored refresh token.
 

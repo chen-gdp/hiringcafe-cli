@@ -40,12 +40,13 @@ uv run pytest -q
 uv build
 ```
 
-CI uses Python 3.12, installs without the intentionally uncommitted lockfile, and does not access live services or account credentials.
+CI runs the supported Python matrix, installs without the intentionally uncommitted lockfile, and does not access live services or account credentials. It grants only `contents: read`, pins each action to its release commit SHA, and uses a bounded job timeout.
 
 ## Acceptance criteria
 
 - `.pre-commit-config.yaml` exists and runs Ruff locally.
 - CI workflow validates dependencies, formatting, linting, tests, and package build.
+- CI is least-privilege, time-bounded, and uses immutable action SHAs.
 - Existing source passes Ruff after mechanical fixes only.
 - Existing tests continue to pass.
 - No runtime dependency is added.

@@ -6,6 +6,8 @@ import urllib.parse
 import urllib.request
 from urllib.request import urlopen
 
+from hiringcafe_cli.io_limits import read_limited
+
 FIREBASE_WEB_API_KEY = "AIzaSyBggiJ0ZSnwXoh1JILiairK8I3_BzI1V1E"
 PROJECT_ID = "hiringcafe-ec4d6"
 
@@ -75,7 +77,7 @@ class FirebaseClient:
         request = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
             with self.post(request, timeout=timeout) as response:
-                text = response.read().decode("utf-8")
+                text = read_limited(response, "Firebase").decode("utf-8")
         except urllib.error.HTTPError as error:
             if error.code == 400:
                 raise FirebaseAuthError("Firebase rejected the credential") from error

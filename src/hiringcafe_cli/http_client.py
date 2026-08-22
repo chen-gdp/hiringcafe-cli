@@ -8,6 +8,8 @@ import urllib.parse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from hiringcafe_cli.io_limits import read_limited
+
 BROWSER_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
@@ -172,7 +174,7 @@ class WebClient:
         )
         try:
             with self.urlopen(request, timeout=self.timeout) as response:
-                response.read()
+                read_limited(response, "marketplace-stage")
         except HTTPError as error:
             raise HireCafeHTTPError("marketplace-stage", error.code, error.reason) from error
         except (URLError, TimeoutError, OSError) as error:
@@ -188,7 +190,7 @@ class WebClient:
         )
         try:
             with self.urlopen(request, timeout=self.timeout) as response:
-                response.read()
+                read_limited(response, endpoint)
         except HTTPError as error:
             raise HireCafeHTTPError(endpoint, error.code, error.reason) from error
         except (URLError, TimeoutError, OSError) as error:
@@ -214,7 +216,7 @@ class WebClient:
         for attempt in range(self.retry_policy.count + 1):
             try:
                 with self.urlopen(request, timeout=self.timeout) as response:
-                    return response.read().decode("utf-8")
+                    return read_limited(response, endpoint).decode("utf-8")
             except HTTPError as error:
                 wrapped = HireCafeHTTPError(endpoint, error.code, error.reason)
             except (URLError, TimeoutError, OSError) as error:

@@ -51,6 +51,23 @@ def test_web_client_rejects_missing_next_data(monkeypatch):
         client.search_page({}, 0)
 
 
+def test_web_client_rejects_oversized_response(monkeypatch):
+    """Condition: an anonymous GET response exceeds the read limit.
+
+    Expected: parsing fails with a bounded-response error rather than reading without a limit.
+    """
+
+    class OversizedResponse(io.BytesIO):
+        def read(self, size=-1):
+            return b"x" * size
+
+    monkeypatch.setattr(WebClient, "urlopen", staticmethod(lambda request, timeout: OversizedResponse()))
+    client = WebClient(base_url="https://example.test")
+
+    with pytest.raises(ValueError, match="search response exceeds"):
+        client.search_page({}, 0)
+
+
 def test_web_client_rejects_missing_required_page_property(monkeypatch):
     """Condition: payload omits ssrPage. Expected: parse error identifies the field."""
     payload = {"props": {"pageProps": {"ssrHits": [], "ssrTotalCount": 0, "ssrIsLastPage": True}}}

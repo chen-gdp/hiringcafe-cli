@@ -5,7 +5,7 @@ import sys
 from hiringcafe_cli.auth import store
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseClient
 from hiringcafe_cli.http_client import WebClient
-from hiringcafe_cli.saved_jobs import decode_firestore_fields
+from hiringcafe_cli.saved_jobs import VALID_STAGES, decode_firestore_fields
 from hiringcafe_cli.saved_jobs_list import FirestoreClient
 
 
@@ -16,7 +16,10 @@ def remove(object_id: str) -> None:
     if document is None:
         raise LookupError(f"saved job not found: {object_id}")
     fields = decode_firestore_fields(document.get("fields", {}))
-    WebClient().remove_job(object_id, credentials["idToken"], fields["stage"])
+    stage = fields.get("stage")
+    if stage not in VALID_STAGES:
+        raise LookupError(f"saved job has no usable stage: {object_id}")
+    WebClient().remove_job(object_id, credentials["idToken"], stage)
 
 
 def run(argv, json_output: bool = False) -> int:
