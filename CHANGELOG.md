@@ -5,6 +5,11 @@
 - Initial unofficial Python CLI for Hiring Cafe job search, job details, authentication, saved-job tracking, anonymous-read caching, retries, and stable agent-oriented JSON output.
 - Added tagged PyPI release automation using GitHub Trusted Publishing.
 
+## 0.2.0 — 2026-10-11
+
+- Restore public search, count, and job-detail reads through HiringCafe's documented read-only MCP connector.
+- Remove unsupported pagination assumptions and document the saved-job-save limitation caused by the challenged raw hydration route.
+
 ## 0.1.5
 
 - Made `hiringcafe --version` read the installed package metadata so it matches PyPI releases.

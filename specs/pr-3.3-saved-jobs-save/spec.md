@@ -22,6 +22,8 @@ Marketplace JSON body observed in the web bundle:
 
 Verification result: all listed dependencies are usable and their order is verified. The Firestore REST equivalent must reproduce the web client's merge write.
 
+Current status amendment (2026-10-11): the raw job hydration route now returns a Cloudflare challenge from the CLI host. The official MCP read connector does not expose the raw job object or support writes. Therefore `saved-jobs save` may fail before its Firestore write until a supported raw-job hydration path is verified; PR 9.1 does not change or claim to repair this flow.
+
 ## Precondition
 
 Verified web-app write behavior:

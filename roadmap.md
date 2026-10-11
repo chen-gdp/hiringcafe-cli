@@ -2,9 +2,9 @@
 
 ## Status
 
-**Ready for implementation — anonymous and authenticated behavior verified from the live web app.**
+**Active — official read-only MCP behavior is documented and live-verified; legacy anonymous web routes are currently Cloudflare-challenged from CLI clients.**
 
-Verified against the live site on 2026-08-17 (Asia/Jakarta). HiringCafe has no official public API contract. This roadmap only commits to behavior observed in the live web app or its current JavaScript bundle.
+Verified against the live site on 2026-10-11 (Asia/Jakarta) and HiringCafe's current integration documentation. The public MCP connector is an official read-only integration; the older SSR and job-description routes below were historically verified but are not currently usable from the CLI's network path.
 
 This file is the project source of truth. Every PR must reference one PR spec below. If implementation proves a spec wrong, update this roadmap in the same PR before changing code.
 
@@ -49,12 +49,13 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3.2 PyPI checksum isolation | Merged | Implemented in PR #42; uncovered checksum verifier path handling. |
 | 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
 | 8.3.4 Runtime package version sync | Merged | Implemented in PR #44; released as `v0.1.5`. |
-| 8.3.5 Published-package README guide | Open | Add a PyPI-first installation guide, command reference, and table of contents. |
+| 8.3.5 Published-package README guide | Merged | Implemented in PR #45. |
 | 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
+| 9.1 First-party read-only MCP transport | Open | Restore public search, count, and job-detail reads through HiringCafe's documented MCP connector; account mutations remain outside its contract. |
 
 
 ## Product goal
@@ -88,8 +89,10 @@ Base URL: `https://hiringcafe.com`. The user-facing `hiring.cafe` domain redirec
 
 | Status | Purpose | Method and route | Verified result |
 |---|---|---|---|
-| **Verified** | Search jobs | `GET /?searchState=<urlencoded JSON>&page=<n>` | Returns HTML with a `__NEXT_DATA__` script. `props.pageProps` contains `ssrHits`, `ssrPage`, `ssrTotalCount`, `ssrCompanyCount`, `ssrPageSize`, `ssrIsLastPage`, `ssrError`, `ssrTimings`, and `initialSearchState`. |
-| **Verified** | Job description | `GET /api/job-description?id=<objectID>` | Returns `{"job":{"job_information":{"description":"..."}...}}` for a real search hit. |
+| **Historically verified; currently challenged** | Search jobs | `GET /?searchState=<urlencoded JSON>&page=<n>` | Returned `__NEXT_DATA__` on 2026-08-17. On 2026-10-11, `chen-lappy` received HTTP 403 with Cloudflare's `cf-mitigated: challenge`; do not spoof browser headers or reuse challenge cookies. |
+| **Historically verified; currently challenged** | Raw job description | `GET /api/job-description?id=<objectID>` | Returned the raw job object historically. On 2026-10-11, `chen-lappy` received HTTP 403 with Cloudflare's `cf-mitigated: challenge`. `saved-jobs save` still depends on this raw response and is not covered by the read-only MCP connector. |
+| **Official and live-verified** | Public job search and details | `POST /api/mcp`, JSON-RPC `tools/call` for `search_jobs` and `get_job_details` | HiringCafe documents this endpoint for any MCP-compatible client. No sign-in; read-only public data. `search_jobs` returns one job per company, accepts `limit` 1–25 (default 10), and has no pagination contract. Responses are JSON-RPC with Markdown text content. Per-IP rate limits apply; returned links carry Claude attribution parameters. [Official connector documentation](https://hiringcafe.com/documentation/hiringcafe-claude-connector). |
+| **Official; not selected** | ChatGPT job search/details | `POST /api/chatgpt/mcp`, JSON-RPC tools `search_hiringcafe_jobs` and `get_hiringcafe_job_details` | Documented read-only integration with a separate response/tool contract and ChatGPT attribution. Not used by this CLI. [Official ChatGPT app documentation](https://hiringcafe.com/documentation/hiringcafe-chatgpt-app). |
 | Reachable, unknown contract | Generic jobs | `GET /api/jobs` | Returned `{"jobs":[]}` anonymously; useful semantics unknown. Do not build on it. |
 | Reachable, unknown contract | Marketplace count | `GET /api/getMarketplaceJobsCount` | Returned `{"count":0}` anonymously; useful semantics unknown. Do not build on it. |
 | Requires exact unknown parameter | Facets | `GET /api/search-facets` | Returns `400 {"error":"Invalid or missing facetType."}`. Common guesses were rejected. Deferred until the exact value is captured from the app. |
@@ -98,7 +101,7 @@ Base URL: `https://hiringcafe.com`. The user-facing `hiring.cafe` domain redirec
 | Disproven | Old total count | `/api/search-jobs/get-total-count` | Not present in current bundles and returns 404. |
 | Disproven | Standalone SSR route | `/ssr/search-jobs` | Returns 404. Search SSR is the home route. |
 
-Search observations:
+Historical SSR observations (observed 2026-08-17; not a current CLI transport contract):
 
 - Live cache headers on 2026-08-17: `cache-control: private, no-store`; a representative search response was about 1 MB. HTTP/shared caching cannot reuse it, so only an explicit local TTL cache may do so.
 - Only `searchQuery` and `page` are verified CLI inputs.
@@ -106,6 +109,8 @@ Search observations:
 - `ssrPageSize` was 40, but page size is server-controlled and must not be a CLI promise.
 - A page may contain more `ssrHits` than `ssrPageSize` because grouped cards can unpack into multiple unique postings. In one probe, 40 unique `collapse_key`/`source_and_board_token` groups produced 124 unique `objectID` hits.
 - Pagination was verified with `page=0`, `1`, and `2`. All pages retained the same `searchState`; only a malformed earlier probe suggested otherwise.
+- On 2026-10-11, both the root search request and the raw job-description request returned a Cloudflare challenge to the CLI host. This is a network access-control response, not evidence that the old response schemas changed.
+- The MCP connector's read-only scope does not include profiles, saved jobs, tracker data, resume uploads, alerts, or writes. Authenticated write flows must continue to use separately verified APIs and must not be inferred from the MCP connector.
 - `count` must be derived from `ssrTotalCount` on page 0, not from the length of `ssrHits`.
 
 Useful `ssrHits` fields observed:
@@ -831,13 +836,13 @@ Do not build without a verified contract and concrete user need:
 
 ## Appendix A — Complete discovered endpoint inventory
 
-Extracted from every JavaScript chunk loaded by `https://hiringcafe.com/` on 2026-08-17. Query-string construction variants were deduplicated. Dynamic Next.js route templates are preserved.
+Extracted from every JavaScript chunk loaded by `https://hiringcafe.com/` on 2026-08-17. Query-string construction variants were deduplicated. Dynamic Next.js route templates are preserved. Official MCP routes were verified from current documentation on 2026-10-11.
 
 Route discovery is not an API contract. Unless the main endpoint inventory marks a route verified, its method, body, auth requirement, and response schema are unknown or only partially known. Do not implement a discovered route solely because it appears here.
 
 ### CLI-relevant routes
 
-Verified or previously probed:
+Previously probed routes (current status is in the main endpoint inventory):
 
 ```text
 /api/job-description
@@ -848,6 +853,8 @@ Verified or previously probed:
 /api/removeJobFromList
 /api/tracker/searchIndex
 /api/updateMarketplaceJobStageForUser
+/api/mcp
+/api/chatgpt/mcp
 ```
 
 Discovered but contract unknown; potentially relevant after capture:
@@ -1392,3 +1399,34 @@ Use the complete blocked PR 2.3 specification:
 - Successful browser login stores the existing session format and `auth status` succeeds.
 - Cancelled, expired, malformed, or replayed callbacks write no session.
 - No token or credential appears in output or tests.
+
+## Phase 9 — First-party read transport recovery
+
+The anonymous page and raw job-detail routes now receive Cloudflare challenges from the CLI host. This phase moves only public reads to HiringCafe's documented integration interface; it does not infer account or mutation capabilities from that interface.
+
+### PR 9.1 — Official MCP read transport
+
+#### Spec
+
+- Replace `search`, `count`, and `job show` reads with the documented `POST /api/mcp` JSON-RPC `tools/call` interface.
+- Use only the verified `search_jobs` and `get_job_details` tools. Keep Firebase auth and saved-job mutation transports separate.
+- Normalize the observed Markdown tool responses into the existing agent-facing JSON shape. Reject unrecognized or incomplete response text rather than returning false empty results.
+- Use the documented default limit of 10 (upstream maximum 25), one-job-per-company behavior, lack of pagination, per-IP rate limits, and attribution-bearing links.
+- Keep the local cache, but use new cache-key namespaces so old SSR/raw-detail entries cannot be mistaken for MCP data.
+- Update the opt-in live probe and user documentation to report the new read scope and remaining saved-job-save limitation.
+
+#### Out of scope
+
+- Solving/bypassing Cloudflare challenges, copying browser cookies, changing user agents to evade access controls, or retrying rate-limited MCP POSTs.
+- Pagination, filters/facets, account/profile/tracker reads, saved-job writes, resume upload, or alerts.
+- Changing the Firebase auth/session format or any authenticated mutation payload.
+
+#### Acceptance criteria
+
+- The live endpoint and both tools are verified from the documented API; tests use synthetic Markdown only and contain no real job or contact data.
+- Search uses the documented default limit of 10 (upstream maximum 25); unsupported pages and raw filters fail before HTTP.
+- Count handles both a nonempty result-count header and HiringCafe's observed explicit no-results response.
+- Job details retain their attribution URL, return a nonempty description, and show a usable page link in human output; unknown tool output fails clearly.
+- HTTP 429 is surfaced as rate-limited without automatic POST retry; HTTP and JSON-RPC failures do not print response bodies or credentials.
+- Cache entries use distinct MCP keys; normal tests remain offline and the opt-in probe exposes no job data.
+- README, changelog, endpoint inventory, and this spec agree on the read-only scope and limitations.

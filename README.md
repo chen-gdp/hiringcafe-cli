@@ -8,10 +8,10 @@ Give your AI agent Hiring Cafe superpowers: search jobs, inspect postings, and k
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ```bash
-hiringcafe search "python developer" --pages 3 --jsonl
+hiringcafe search "python developer" --jsonl
 ```
 
-The CLI provides stable JSON/JSONL output, explicit exit codes, cached anonymous reads, bounded retries, and authenticated actions against your real Hiring Cafe account.
+The CLI gives your agent structured access to public jobs and, when authenticated, selected actions on your real Hiring Cafe account. Public search and job details use Hiring Cafe's [documented read-only MCP connector](https://hiringcafe.com/documentation/hiringcafe-claude-connector): each search returns at most 10 jobs, with at most one job per company and no pagination or filters yet. Requests are rate-limited; avoid high-frequency automated polling.
 
 > **Unofficial client.** This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change.
 
@@ -70,10 +70,10 @@ For a fresh result, bypass the anonymous-read cache:
 hiringcafe search "python developer" --no-cache --json
 ```
 
-Collect consecutive pages and stream one JSON object per job:
+Stream the returned jobs as one JSON object per line (up to 10 results):
 
 ```bash
-hiringcafe search "python developer" --pages 3 --jsonl
+hiringcafe search "python developer" --jsonl
 ```
 
 Extract the normalized jobs from one JSON page:
@@ -102,6 +102,7 @@ Agent automation contract:
 - Provider passwords and Firebase ID tokens are never written to disk.
 - Authenticated mutations are never retried or cached.
 - Anonymous search/count responses use a 15-minute cache; job details use 24 hours.
+- Search returns at most 10 jobs, one per company; pagination and filters are not supported by the current upstream interface.
 - Invalid arguments fail before a network request is made.
 
 ## Commands
@@ -109,7 +110,7 @@ Agent automation contract:
 | Command | Purpose |
 |---|---|
 | `hiringcafe search "query" --json` | Search jobs and print structured JSON |
-| `hiringcafe search "query" --pages 3 --jsonl` | Fetch consecutive pages as JSON Lines |
+| `hiringcafe search "query" --jsonl` | Stream up to 10 search results as JSON Lines |
 | `hiringcafe count "query" --json` | Print only the result count |
 | `hiringcafe job show <objectID> --json` | Inspect one job posting |
 | `hiringcafe auth login --email you@example.com` | Authenticate interactively |
@@ -151,6 +152,8 @@ The CLI stores only the refresh token in an owner-only local session file. It do
 ## Saved jobs
 
 These commands modify your real Hiring Cafe account. Review object IDs and confirmation prompts before changing data.
+
+`saved-jobs save` currently depends on an older raw job-hydration endpoint that is returning a Cloudflare challenge from the CLI host. It may fail before saving; the read-only MCP connector does not support saved-job writes or provide the raw object needed by this command. Listing, staging, and removing saved jobs use separate authenticated flows.
 
 ```bash
 hiringcafe saved-jobs save <objectID> --stage saved
@@ -212,6 +215,6 @@ Every implementation change traces to `specs/pr-*/spec.md` and the roadmap. Neve
 
 ## Project status
 
-Search, job details, authentication, saved jobs, retries, caching, Python 3.11–3.14 CI, and tagged PyPI releases are implemented. Filters/facets, tracker search, saved-job pagination, and browser OAuth login remain intentionally deferred until their upstream contracts are verified.
+Public search, job details, authentication, saved-job listing/staging/removal, retries, caching, Python 3.11–3.14 CI, and tagged PyPI releases are implemented. Saved-job save is currently blocked by the challenged raw hydration route. Filters/facets, tracker search, saved-job pagination, and browser OAuth login remain deferred until their upstream contracts are verified.
 
 See [`roadmap.md`](roadmap.md) and [`specs/`](specs/) for the complete implementation status and PR specifications.

@@ -18,8 +18,9 @@ BROWSER_HEADERS = {
         "(KHTML, like Gecko) Chrome/128.0 Safari/537.36 hiringcafe-cli/0.1"
     ),
 }
-REQUIRED_SSR_KEYS = ("ssrHits", "ssrPage", "ssrTotalCount", "ssrPageSize", "ssrIsLastPage")
 RETRYABLE_STATUSES = {408, 429, *range(500, 600)}
+MCP_URL_PATH = "/api/mcp"
+MCP_TOOLS = {"search_jobs", "get_job_details"}
 
 
 class HireCafeHTTPError(RuntimeError):
@@ -88,41 +89,6 @@ class RetryPolicy:
         return random.uniform(0, self.base * (2**attempt))
 
 
-def parse_ssr_page(html: str) -> dict:
-    """Parse and validate pageProps from a HiringCafe SSR response.
-
-    Args:
-        html: Complete SSR HTML document.
-
-    Returns:
-        The validated pageProps object.
-
-    Raises:
-        ValueError: If __NEXT_DATA__ is missing, malformed, or incomplete.
-    """
-    marker_start = '<script id="__NEXT_DATA__" type="application/json">'
-    fallback_start = '<script id="__NEXT_DATA__">'
-    starts = [index for index in (html.find(marker_start), html.find(fallback_start)) if index >= 0]
-    if not starts:
-        raise ValueError("missing __NEXT_DATA__")
-    start = min(starts)
-    content_start = html.index(">", start) + 1
-    end = html.find("</script>", content_start)
-    if end < 0:
-        raise ValueError("unterminated __NEXT_DATA__")
-    try:
-        payload = json.loads(html[content_start:end])
-    except json.JSONDecodeError as error:
-        raise ValueError("invalid __NEXT_DATA__ JSON") from error
-    properties = payload.get("props", {}).get("pageProps", {})
-    if not isinstance(properties, dict):
-        raise ValueError("__NEXT_DATA__ pageProps is not an object")
-    for key in REQUIRED_SSR_KEYS:
-        if key not in properties:
-            raise ValueError(f"missing SSR key: {key}")
-    return properties
-
-
 class WebClient:
     """Client that owns every anonymous HiringCafe web URL."""
 
@@ -139,18 +105,69 @@ class WebClient:
         self.timeout = timeout
         self.retry_policy = RetryPolicy(timeout=timeout)
 
-    def search_page(self, search_state: dict, page: int) -> dict:
-        """Fetch one SSR search page.
+    def call_mcp_tool(self, name: str, arguments: dict[str, str | int]) -> str:
+        """Call a documented read-only HiringCafe MCP tool and return its text content.
 
         Args:
-            search_state: Complete search state object.
-            page: Nonnegative page number.
+            name: Supported public tool name.
+            arguments: Tool arguments encoded as JSON.
 
         Returns:
-            Validated ``props.pageProps``.
+            Joined textual content from the MCP result.
+
+        Raises:
+            ValueError: If the tool name or JSON-RPC response is invalid.
+            HireCafeHTTPError: If HiringCafe returns an HTTP error.
+            HireCafeTransportError: If the request cannot complete.
         """
-        query = urllib.parse.urlencode({"searchState": json.dumps(search_state), "page": page})
-        return parse_ssr_page(self._get(f"{self.base_url}/?{query}", "search"))
+        if name not in MCP_TOOLS:
+            raise ValueError("unsupported HiringCafe MCP tool")
+        body = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": name, "arguments": arguments},
+            },
+            separators=(",", ":"),
+        ).encode()
+        request = Request(
+            f"{self.base_url}{MCP_URL_PATH}",
+            data=body,
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "User-Agent": "hiringcafe-cli",
+            },
+            method="POST",
+        )
+        try:
+            with self.urlopen(request, timeout=self.timeout) as response:
+                response_body = read_limited(response, "mcp").decode("utf-8")
+        except HTTPError as error:
+            raise HireCafeHTTPError("mcp", error.code, error.reason) from error
+        except (URLError, TimeoutError, OSError) as error:
+            raise HireCafeTransportError("mcp", error) from error
+        payload = self._json(response_body)
+        if payload.get("jsonrpc") != "2.0" or type(payload.get("id")) is not int or payload["id"] != 1:
+            raise ValueError("invalid HiringCafe MCP response")
+        result = payload.get("result")
+        if "error" in payload or not isinstance(result, dict) or result.get("isError"):
+            raise ValueError("HiringCafe MCP tool call failed")
+        content = result.get("content")
+        if not isinstance(content, list):
+            raise ValueError("HiringCafe MCP response has no text content")
+        texts = []
+        for item in content:
+            if not isinstance(item, dict) or item.get("type") != "text":
+                continue
+            text = item.get("text")
+            if not isinstance(text, str):
+                raise ValueError("HiringCafe MCP response has invalid text content")
+            texts.append(text)
+        if not texts:
+            raise ValueError("HiringCafe MCP response has no text content")
+        return "\n".join(texts)
 
     def job_description(self, object_id: str) -> dict:
         """Fetch a job-description JSON object.
