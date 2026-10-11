@@ -101,7 +101,12 @@ def test_job_show_caches_only_email_scrubbed_content(tmp_path, monkeypatch):
     """Condition: detail includes encoded and plain email strings. Expected: cache stores only scrubbed text."""
     from hiringcafe_cli.job import show
 
-    response = DETAIL_RESPONSE + "\nContact: person@example.invalid\nEncoded: person&#64;example.invalid"
+    response = (
+        DETAIL_RESPONSE
+        + "\nContact: person@example.invalid"
+        + "\nEncoded: person&#64;example.invalid"
+        + "\nURL-encoded: person%40example.invalid"
+    )
 
     class FakeClient:
         def call_mcp_tool(self, name, arguments):
@@ -116,4 +121,5 @@ def test_job_show_caches_only_email_scrubbed_content(tmp_path, monkeypatch):
     cached_text = cached_files[0].read_text(encoding="utf-8")
     assert "person@example.invalid" not in cached_text
     assert "person&#64;example.invalid" not in cached_text
+    assert "person%40example.invalid" not in cached_text
     assert "[email redacted]" in cached_text

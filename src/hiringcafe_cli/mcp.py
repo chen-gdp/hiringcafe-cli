@@ -6,6 +6,7 @@ import urllib.parse
 from typing import Any
 
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+ENCODED_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+%40[A-Z0-9._%+-]+(?:\.|%2E)[A-Z]{2,}\b", re.IGNORECASE)
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 TOTAL_RE = re.compile(
     r"^## HiringCafe job results \(showing (?P<shown>[\d,]+) of (?P<total>[\d,]+) matches\)$", re.IGNORECASE
@@ -20,7 +21,9 @@ RAW_URL_RE = re.compile(r"https://\S+")
 
 def _safe_text(text: str) -> str:
     """Remove email-address strings before parsed public content is cached or printed."""
-    return CONTROL_RE.sub("", EMAIL_RE.sub("[email redacted]", html.unescape(text)))
+    text = html.unescape(text)
+    text = ENCODED_EMAIL_RE.sub("[email redacted]", text)
+    return CONTROL_RE.sub("", EMAIL_RE.sub("[email redacted]", text))
 
 
 def _value(text: str) -> str | None:

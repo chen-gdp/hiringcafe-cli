@@ -91,6 +91,7 @@ def test_search_rejects_multiple_pages_and_raw_filters_before_network(monkeypatc
     for args in (
         ["search", "python", "--pages", "2"],
         ["search", "--raw-search-state", '{"searchQuery":"python","workplaceTypes":["Remote"]}'],
+        ["search", "--raw-search-state", "{}"],
     ):
         try:
             main(args)

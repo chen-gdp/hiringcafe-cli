@@ -37,6 +37,8 @@ def search(
         raise InvalidSearchState(
             "HiringCafe's supported search interface accepts query text only; filters are not supported"
         )
+    if "searchQuery" not in state:
+        raise InvalidSearchState("raw search state must contain searchQuery")
     search_query = state.get("searchQuery", "")
     if not isinstance(search_query, str):
         raise InvalidSearchState("searchQuery must be a string")

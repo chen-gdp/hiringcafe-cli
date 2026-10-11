@@ -39,6 +39,7 @@ Experience building systems.
 Design and operate reliable services.
 Contact: person@example.invalid
 Encoded contact: person&#64;example.invalid
+URL-encoded contact: person%40example.invalid
 """
 
 
@@ -98,6 +99,7 @@ def test_parse_job_details_sanitizes_email_and_preserves_both_links():
     assert "utm_source=claude" in job["hiringCafeUrl"]
     assert "person@example.invalid" not in job["description"]
     assert "person&#64;example.invalid" not in job["description"]
+    assert "person%40example.invalid" not in job["description"]
     assert "[email redacted]" in job["description"]
 
 
