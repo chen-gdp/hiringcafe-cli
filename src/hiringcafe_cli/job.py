@@ -6,6 +6,7 @@ import sys
 
 from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
 from hiringcafe_cli.http_client import WebClient, configured_base_url
+from hiringcafe_cli.mcp import parse_job_details
 
 JOB_TTL = 86400
 
@@ -21,26 +22,26 @@ def show(object_id: str, no_cache: bool = False, cache_ttl: int | None = None) -
     """
     cache_root = active_cache_root()
     client = WebClient()
-    key = ("job", configured_base_url(), object_id)
+    key = ("mcp-job-v1", configured_base_url(), object_id)
     ttl = JOB_TTL if cache_ttl is None else cache_ttl
     enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
     raw = cache_read(key, ttl, cache_root, enabled=enabled)
     if raw is not None:
         job = raw
     else:
-        job = client.job_description(object_id)
+        response = client.call_mcp_tool("get_job_details", {"job_id": object_id})
+        job = parse_job_details(response, object_id)
         cache_write(key, job, ttl, cache_root, enabled=enabled)
     if not job:
-        raise ValueError("job-description response has no job object")
-    information = job.get("job_information") or {}
-    description = information.get("description")
+        raise ValueError("HiringCafe MCP response has no job details")
     return {
         "version": 1,
         "job": {
-            "id": job.get("objectID", object_id),
-            "title": information.get("title"),
-            "description": " ".join(str(description).split()) if description is not None else None,
-            "url": job.get("apply_url"),
+            "id": job["id"],
+            "title": job["title"],
+            "description": job["description"],
+            "url": job["url"],
+            "hiringCafeUrl": job["hiringCafeUrl"],
         },
     }
 
@@ -59,5 +60,5 @@ def run(argv: object, json_output: bool) -> int:
         print(json.dumps(envelope, separators=(",", ":")))
     else:
         job = envelope["job"]
-        print(f"{job['title'] or 'Untitled'}\n{job['url'] or ''}\n\n{job['description'] or ''}")
+        print(f"{job['title'] or 'Untitled'}\n{job['url'] or job['hiringCafeUrl']}\n\n{job['description'] or ''}")
     return 0

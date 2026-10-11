@@ -105,8 +105,8 @@ def test_cli_rate_limit_exits_three(monkeypatch, capsys):
 
     class FakeClient:
         @staticmethod
-        def search_page(state, page):
-            raise HireCafeHTTPError("search", 429)
+        def call_mcp_tool(name, arguments):
+            raise HireCafeHTTPError("mcp", 429)
 
     monkeypatch.setattr(search, "WebClient", FakeClient)
     try:
@@ -129,8 +129,8 @@ def test_cli_transport_failure_exits_one(monkeypatch, capsys):
 
     class FakeClient:
         @staticmethod
-        def search_page(state, page):
-            raise HireCafeTransportError("search", URLError("offline"))
+        def call_mcp_tool(name, arguments):
+            raise HireCafeTransportError("mcp", URLError("offline"))
 
     monkeypatch.setattr("hiringcafe_cli.search.WebClient", FakeClient)
     try:

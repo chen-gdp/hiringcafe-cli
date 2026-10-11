@@ -8,7 +8,7 @@
 
 Verified response shape begins with `{"job":{"job_information":{"description":"..."}}}`.
 
-Verification result: usable for anonymous detail reads. One live response exposed `cache-control: public` and an ETag but no usable lifetime; caching is deferred to PR 5.1.
+Historical verification result: usable for anonymous detail reads when this PR shipped. On 2026-10-11, the CLI host received HTTP 403 with `cf-mitigated: challenge`; PR 9.1 replaces `job show` reads with HiringCafe's documented MCP connector. The original response's ETag had no usable lifetime; local TTL caching is governed by PR 5.1.
 
 ## Scope
 

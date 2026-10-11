@@ -8,7 +8,7 @@
 
 The count is `props.pageProps.ssrTotalCount`. A separate count endpoint must not be used.
 
-Verification result: usable. `ssrTotalCount` is verified on page 0; dead or partially known count routes are excluded.
+Historical verification result: usable when this PR shipped. On 2026-10-11, the CLI host received HTTP 403 with `cf-mitigated: challenge`; PR 9.1 replaces this route for count with HiringCafe's documented MCP search response. Dead or partially known count routes remain excluded.
 
 ## Scope
 

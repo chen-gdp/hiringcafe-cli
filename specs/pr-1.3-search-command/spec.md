@@ -8,7 +8,7 @@
 
 No other endpoint is allowed.
 
-Verification result: usable. The route returns verified SSR properties, but `private, no-store` means the command must not rely on HTTP caching.
+Historical verification result: usable when this PR shipped. On 2026-10-11, the CLI host received HTTP 403 with `cf-mitigated: challenge`. PR 9.1 replaces this route for the CLI search command with HiringCafe's documented MCP connector. The original route returned `private, no-store`; local TTL caching is governed by PR 5.1.
 
 ## Scope
 

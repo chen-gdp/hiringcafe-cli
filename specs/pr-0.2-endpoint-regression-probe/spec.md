@@ -11,7 +11,7 @@ Only anonymous endpoints already verified by the roadmap:
 
 The job-description request must use an `objectID` returned by the page-0 search response.
 
-Verification result: both anonymous endpoints are usable live; the probe exists specifically to detect future regressions.
+Historical verification result: both endpoints worked when this PR shipped. On 2026-10-11, the CLI host received Cloudflare challenge responses for both routes. PR 9.1 replaces the live probe's read path with HiringCafe's documented MCP connector; this historical spec remains the original acceptance record.
 
 ## Scope
 

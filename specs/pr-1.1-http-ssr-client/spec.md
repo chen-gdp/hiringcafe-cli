@@ -8,7 +8,7 @@
 
 This is the current SSR web route, not `/api/search-jobs`.
 
-Verification result: usable and implemented as the anonymous search transport. The live response sends `cache-control: private, no-store`, so this PR performs no caching; explicit TTL caching is deferred to PR 5.1.
+Historical verification result: usable when this PR shipped. On 2026-10-11, the CLI host received HTTP 403 with `cf-mitigated: challenge`; this route is no longer the supported CLI read transport. PR 9.1 replaces it with HiringCafe's documented MCP connector. The live response originally sent `cache-control: private, no-store`, so explicit local TTL caching was added separately in PR 5.1.
 
 ## Scope
 

@@ -6,6 +6,13 @@ import os
 from hiringcafe_cli import main, search
 from hiringcafe_cli.cache import CacheStore, cache_read, cache_write, default_cache_root
 
+SEARCH_RESPONSE = """\
+## HiringCafe job results (showing 1 of 1 matches)
+
+### [Engineer](https://hiringcafe.com/job/job-one?utm_source=claude)
+- Job ID: `job-one`
+"""
+
 
 def test_cache_hit_repeats_search_without_http(tmp_path, monkeypatch, capsys):
     """Condition: identical search key is read twice before TTL expiry.
@@ -139,16 +146,9 @@ class FakeClient:
         self.base_url = "https://hiringcafe.com"
         self.calls = []
 
-    def search_page(self, state, page):
-        self.calls.append((state, page))
-        return {
-            "ssrHits": [{"objectID": "job-one", "job_information": {"title": "Engineer"}}],
-            "ssrPage": 0,
-            "ssrTotalCount": 1,
-            "ssrCompanyCount": 1,
-            "ssrPageSize": 40,
-            "ssrIsLastPage": True,
-        }
+    def call_mcp_tool(self, name, arguments):
+        self.calls.append((name, arguments))
+        return SEARCH_RESPONSE
 
 
 def test_cli_repeat_search_uses_cache_without_http(tmp_path, monkeypatch, capsys):
@@ -166,7 +166,7 @@ def test_cli_repeat_search_uses_cache_without_http(tmp_path, monkeypatch, capsys
         else:
             raise AssertionError("CLI should exit")
     captured = capsys.readouterr()
-    assert client.calls == [({"searchQuery": "python"}, 0)]
+    assert client.calls == [("search_jobs", {"search": "python", "limit": 10})]
     assert "cache miss" in captured.err
     assert "cache hit" in captured.err
 
@@ -183,16 +183,13 @@ def test_search_cache_is_isolated_by_configured_base_url(tmp_path, monkeypatch):
         def __init__(self, base_url):
             self.base_url = base_url
 
-        def search_page(self, state, page):
-            calls.append((self.base_url, state, page))
-            return {
-                "ssrHits": [{"objectID": f"{self.base_url}-job", "job_information": {"title": "Engineer"}}],
-                "ssrPage": page,
-                "ssrTotalCount": 1,
-                "ssrCompanyCount": 1,
-                "ssrPageSize": 40,
-                "ssrIsLastPage": True,
-            }
+        def call_mcp_tool(self, name, arguments):
+            object_id = f"{self.base_url.removeprefix('https://')}-job"
+            calls.append((self.base_url, name, arguments))
+            return (
+                "## HiringCafe job results (showing 1 of 1 matches)\n\n"
+                f"### [Engineer](https://hiringcafe.com/job/{object_id})\n- Job ID: `{object_id}`"
+            )
 
     monkeypatch.setenv("HIRINGCAFE_CACHE_HOME", str(tmp_path))
     monkeypatch.setattr(
@@ -204,7 +201,7 @@ def test_search_cache_is_isolated_by_configured_base_url(tmp_path, monkeypatch):
         monkeypatch.setenv("HIRINGCAFE_BASE_URL", base_url)
         for _ in range(2):
             result = search.search("python", 0)
-            assert result["result"]["jobs"][0]["id"] == f"{base_url}-job"
+            assert result["result"]["jobs"][0]["id"] == f"{base_url.removeprefix('https://')}-job"
     assert len(calls) == 2
 
 
@@ -225,7 +222,7 @@ def test_cli_count_reuses_cached_search_and_custom_ttl(tmp_path, monkeypatch, ca
     except SystemExit as error:
         assert error.code == 0
     captured = capsys.readouterr()
-    assert client.calls == [({"searchQuery": "python"}, 0)]
+    assert client.calls == [("search_jobs", {"search": "python", "limit": 10})]
     assert json.loads(captured.out)["count"] == 1
     assert "cache hit" in captured.err
 
