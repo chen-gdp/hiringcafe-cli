@@ -21,14 +21,18 @@ RAW_URL_RE = re.compile(r"https://\S+")
 
 def _safe_text(text: str) -> str:
     """Remove email-address strings before parsed public content is cached or printed."""
-    text = html.unescape(text)
+    for _ in range(3):
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
     text = ENCODED_EMAIL_RE.sub("[email redacted]", text)
     return CONTROL_RE.sub("", EMAIL_RE.sub("[email redacted]", text))
 
 
 def _value(text: str) -> str | None:
     """Normalize an optional Markdown value without changing its meaning."""
-    value = html.unescape(text.strip()).strip("`").strip()
+    value = text.strip().strip("`").strip()
     return None if not value or value.casefold() in {"n/a", "not specified", "unknown"} else value
 
 
@@ -88,7 +92,7 @@ def parse_search_response(text: str) -> dict[str, Any]:
             if current is not None:
                 jobs.append(_search_job(current))
             current = {
-                "title": html.unescape(heading.group("title")),
+                "title": heading.group("title"),
                 "hiringCafeUrl": _https_url(heading.group("url")),
                 "company": None,
                 "fields": {},
@@ -99,7 +103,7 @@ def parse_search_response(text: str) -> dict[str, Any]:
         stripped = line.strip()
         strong = re.fullmatch(r"\*\*(.+)\*\*", stripped)
         if strong and current["company"] is None:
-            current["company"] = html.unescape(strong.group(1).strip())
+            current["company"] = strong.group(1).strip()
             continue
         field = FIELD_RE.match(stripped) or PLAIN_FIELD_RE.match(stripped)
         if field:
@@ -174,7 +178,7 @@ def parse_job_details(text: str, object_id: str) -> dict[str, Any]:
         raise ValueError("HiringCafe job-detail response has no full description")
     return {
         "id": returned_id,
-        "title": html.unescape(heading.group("title")),
+        "title": heading.group("title"),
         "description": description,
         "url": _link_value(fields.get("view & apply", "")),
         "hiringCafeUrl": _https_url(heading.group("url")),

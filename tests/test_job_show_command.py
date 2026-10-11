@@ -106,6 +106,7 @@ def test_job_show_caches_only_email_scrubbed_content(tmp_path, monkeypatch):
         + "\nContact: person@example.invalid"
         + "\nEncoded: person&#64;example.invalid"
         + "\nURL-encoded: person%40example.invalid"
+        + "\nDouble HTML-encoded: person&amp;#64;example.invalid"
     )
 
     class FakeClient:
@@ -122,4 +123,5 @@ def test_job_show_caches_only_email_scrubbed_content(tmp_path, monkeypatch):
     assert "person@example.invalid" not in cached_text
     assert "person&#64;example.invalid" not in cached_text
     assert "person%40example.invalid" not in cached_text
+    assert "person&amp;#64;example.invalid" not in cached_text
     assert "[email redacted]" in cached_text
