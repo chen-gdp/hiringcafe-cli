@@ -57,6 +57,9 @@ hiringcafe --version
 
 ## For agents
 
+Agents working in this repository should read the shared [HiringCafe CLI skill](.agents/skills/hiringcafe-cli/SKILL.md)
+for supported workflows, safety rules, and known limitations.
+
 The smallest useful loop is install, search, and consume machine-readable output:
 
 ```bash
