@@ -56,6 +56,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
+| 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48. |
 
 
 ## Product goal
@@ -1430,3 +1431,30 @@ The anonymous page and raw job-detail routes now receive Cloudflare challenges f
 - HTTP 429 is surfaced as rate-limited without automatic POST retry; HTTP and JSON-RPC failures do not print response bodies or credentials.
 - Cache entries use distinct MCP keys; normal tests remain offline and the opt-in probe exposes no job data.
 - README, changelog, endpoint inventory, and this spec agree on the read-only scope and limitations.
+
+## Phase 10 — Agent integration and usability
+
+This phase packages project-specific agent instructions in the repository so agents can discover supported CLI workflows and respect account and API boundaries.
+
+### PR 10.1 — Shared HiringCafe CLI agent skill
+
+#### Spec
+
+- Add a portable `SKILL.md` under `.agents/skills/hiringcafe-cli/` for agents using the installed CLI or working in this repository.
+- Describe only capabilities documented in the README and verified status table: public search/count/job details; auth status/login/import/logout; saved-job list/stage/remove; and the current limitation on saved-job save.
+- Tell agents to check the installed CLI version and command help, use structured output, distinguish errors from empty results, and respect cache/rate-limit behavior.
+- Define credential privacy and explicit authorization boundaries for account data and saved-job mutations.
+- Require repository contributors to follow `AGENTS.md`, `roadmap.md`, and the corresponding `specs/pr-*/spec.md` before implementation.
+- Link to the skill from the README's agent section.
+
+#### Out of scope
+
+- New commands, API endpoints, runtime dependencies, credential access, or changes to CLI behavior.
+- Claiming full HiringCafe feature parity or promising that `saved-jobs save` works while its hydration endpoint is challenged.
+
+#### Acceptance criteria
+
+- A repo-aware agent can find and follow the skill without machine-specific paths or user/account details.
+- Skill statements match README and roadmap support status; unsupported features are not presented as implemented.
+- No endpoint/API behavior is added or inferred; no live service call is needed for this documentation-only change.
+- README, skill, roadmap, and this spec pass the repository's documentation and pre-commit checks.
