@@ -56,7 +56,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
-| 10.1 Shared HiringCafe CLI agent skill | Open | Repo skill, README discovery link, and this spec are in a stacked documentation PR. |
+| 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48. |
 
 
 ## Product goal
