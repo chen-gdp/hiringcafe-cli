@@ -33,7 +33,7 @@ CLI **v0.2.1**, recovery checks **2026-10-18**, with authenticated-read evidence
 | `auth import`, `auth logout` | Offline-tested; the audit did not replace/delete real credentials. |
 | Email/password `auth login` | Implemented; fresh login was not live-tested in this audit. |
 | `saved-jobs save` | Still blocked: legacy raw hydration returns HTTP 403, and public-to-raw job identity mapping needs verification. Firestore write repairs have offline transport coverage, not a live save roundtrip. |
-| `saved-jobs stage`, `saved-jobs remove` | Collection-qualified reads repaired. Stage history/timestamps/visibility/conflict guards have transport coverage; live marketplace/Firestore roundtrip remains unverified. |
+| `saved-jobs stage`, `saved-jobs remove` | Collection-qualified reads repaired. Transport regressions and a temporary hidden-record Firestore history/conflict/cleanup check passed; full commands and marketplace/website synchronization remain unverified. |
 | Cache/purge | TTL overrides, zero/negative TTL, schema migration, bypasses, and callers pass offline regressions. Cache hits and isolated purge were live-verified in the prior audit. |
 | `probe` | Live public search/detail probe verified; does not verify auth or mutations. |
 | Browser OAuth and advanced features | Unimplemented: structured filters/facets, search/saved-job pagination, tracker search/details, boards, notes/tags/journal, alerts, resume upload. |

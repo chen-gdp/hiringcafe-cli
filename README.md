@@ -165,7 +165,7 @@ The latest audit verified existing-session refresh, not a new email/password log
 
 `saved-jobs list` reads your account and returns at most 20 records. It excludes hidden jobs unless requested with `--stage hidden`; saved-job pagination is not implemented.
 
-**Live mutation support is not yet verified.** v0.2.1 repairs the missing `savedJobs/` collection, atomic history/timestamp encoding, hidden-state changes, and guarded stage writes. These repairs have offline transport coverage, not a live account-write roundtrip. Save's legacy hydration still returns HTTP 403; the read-only MCP connector does not provide writes or a raw object proven compatible with the website.
+**Full mutation-command support is not yet verified.** v0.2.1 repairs the missing `savedJobs/` collection, atomic history/timestamp encoding, hidden-state changes, and guarded stage writes. Offline transport tests and a disposable hidden-record Firestore create/read/history/conflict/cleanup check passed. The full commands, marketplace synchronization, and website rendering still need a live roundtrip. Save's legacy hydration returns HTTP 403; the read-only MCP connector does not provide writes or a raw object proven compatible with the website.
 
 Public search IDs and raw saved-job `objectID` values can differ. Use an existing saved record's `id` for an explicitly requested stage/removal; do not guess the public-to-raw mapping or run mutations as diagnostic probes. Partial failures can leave Firestore and marketplace state out of sync—inspect state before another mutation.
 

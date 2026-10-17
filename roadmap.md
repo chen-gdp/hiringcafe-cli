@@ -14,7 +14,7 @@ Recorded 2026-10-18 after recovery PRs #50–#52 merged. The historical audit be
 |---|---|
 | Public reads and DNS | Fresh UK/Netherlands/Singapore searches passed locally and on chen-lappy, returning 4/1/1 jobs. Bounded retries/diagnostics pass regressions; the original intermittent environment failure remains unexplained. |
 | Cache freshness | Requested age plus stored expiry, zero/negative TTL, old-schema migration, and search/count/job callers pass offline tests. Old entries miss once. |
-| Saved-job substrate | Collection paths, atomic history/timestamp writes, hidden state, and concurrency guards have transport regressions. Existing-document read confirmed the qualified collection path. Live writes/marketplace synchronization are not verified. |
+| Saved-job substrate | Transport regressions cover paths, history/timestamps, hidden state, and guards. A temporary hidden Firestore record passed create/read/history-append/stale-write rejection and guarded deletion. Full commands, marketplace synchronization, and website rendering remain unverified. |
 | Saving | Incomplete. Legacy/SSR/Next-data hydration requests are challenged from the CLI. Public MCP IDs differ from raw tracker object IDs; verify an authoritative mapping and website-compatible hydration before changing the save path. |
 | Remaining features | Browser OAuth and structured CLI filters are still unimplemented. The local Firebase project configuration confirms localhost is authorized, but a real browser/provider callback is still required. |
 
@@ -87,7 +87,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
 | 10.1 Shared HiringCafe CLI agent skill | Merged | Implemented in PR #48; capability and audit corrections included. |
-| 11.1 Saved-job Firestore recovery | Merged | PR #50 repairs paths, atomic history/timestamps, visibility, and conflict guards. Live write verification pending. |
+| 11.1 Saved-job Firestore recovery | Merged | PR #50 repairs paths, history/timestamps, visibility, and guards. Temporary hidden-record Firestore write/read/conflict/cleanup passed; full commands remain unverified. |
 | 11.2 Save hydration recovery | Open | Investigate verified replacement for blocked hydration; implementation gated on live evidence. |
 | 11.3 Cache freshness recovery | Merged | PR #51 repairs override age, zero/negative TTL, and old-schema migration; regressions, review, and CI pass. |
 | 11.4 DNS/public-read resilience | Merged | PR #52 adds bounded retries and safe diagnostics. Local/chen-lappy fresh searches passed; original DNS cause remains unproven. |
