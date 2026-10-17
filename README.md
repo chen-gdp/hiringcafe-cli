@@ -112,6 +112,8 @@ Agent automation contract:
 - Search returns at most 10 jobs, one per company; the CLI does not expose pagination or upstream structured filters.
 - The CLI connects to MCP itself; public reads require neither a login nor a separate MCP plugin.
 - MCP requests do not automatically retry. DNS errors are network failures, not empty search results; the reported intermittent failure remains unresolved.
+
+Unreleased [public-read recovery](specs/pr-11.4-dns-read-resilience/spec.md) adds at most two retries for transient DNS/connection failures and HTTP 408/5xx, sharing a 30-second caller deadline. HTTP 403/429, certificate failures, malformed responses, and authenticated mutations do not retry. This improves resilience; it does not repair a host's DNS configuration.
 - Invalid arguments fail before a network request is made.
 
 ## Commands
