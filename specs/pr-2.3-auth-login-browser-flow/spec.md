@@ -4,7 +4,7 @@
 
 Blocked. Do not implement yet.
 
-OAuth popups are constrained by Firebase authorized-domain configuration, and localhost behavior has not been verified. Use PR 2.1 token import until this route is proven. This is also the operative specification for deferred roadmap item PR 8.7.
+OAuth popups are constrained by Firebase authorized-domain configuration. On 2026-10-18, the public Identity Toolkit project-config request succeeded and listed `localhost` and the existing project Firebase auth domain as authorized. This clears the domain-configuration uncertainty, not the provider/callback gate. Use PR 2.1 token import until the real flow is proven. This is also the operative specification for deferred roadmap item PR 8.7.
 
 ## API dependencies before implementation
 
@@ -17,6 +17,8 @@ Must all be verified from a real account:
 No HiringCafe application REST endpoint is otherwise required.
 
 Verification result: not usable or implementable yet; localhost/provider callback behavior remains unverified.
+
+The candidate local page must open at `http://localhost:<random-port>` while listening only on IPv4 loopback; `127.0.0.1` is the bind address, not an assumed authorized Firebase browser origin. A user-completed provider sign-in and success/cancellation callback remain to be verified. Never change the project's authorized domains as part of this CLI work.
 
 ## Future scope
 

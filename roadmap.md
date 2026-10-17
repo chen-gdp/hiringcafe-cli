@@ -6,7 +6,21 @@
 
 Verified against the live site on 2026-10-11 (Asia/Jakarta) and HiringCafe's current integration documentation. The public MCP connector is an official read-only integration; the older SSR and job-description routes below were historically verified but are not currently usable from the CLI's network path.
 
-### Current capability audit — CLI v0.2.0
+### Current recovery status — CLI v0.2.1
+
+Recorded 2026-10-18 after recovery PRs #50–#52 merged. The historical audit below remains evidence for v0.2.0, not a description of repaired code.
+
+| Capability | Evidence and remaining limit |
+|---|---|
+| Public reads and DNS | Fresh UK/Netherlands/Singapore searches passed locally and on chen-lappy, returning 4/1/1 jobs. Bounded retries/diagnostics pass regressions; the original intermittent environment failure remains unexplained. |
+| Cache freshness | Requested age plus stored expiry, zero/negative TTL, old-schema migration, and search/count/job callers pass offline tests. Old entries miss once. |
+| Saved-job substrate | Collection paths, atomic history/timestamp writes, hidden state, and concurrency guards have transport regressions. Existing-document read confirmed the qualified collection path. Live writes/marketplace synchronization are not verified. |
+| Saving | Incomplete. Legacy/SSR/Next-data hydration requests are challenged from the CLI. Public MCP IDs differ from raw tracker object IDs; verify an authoritative mapping and website-compatible hydration before changing the save path. |
+| Remaining features | Browser OAuth and structured CLI filters are still unimplemented. The local Firebase project configuration confirms localhost is authorized, but a real browser/provider callback is still required. |
+
+All 241 combined offline tests and pre-commit passed. Each recovery PR passed Python 3.11–3.14 CI and independent review with no findings. These are not proof of live account mutations. PR 11.5 prepares v0.2.1; release workflow/PyPI/installed-artifact verification must complete before recording publication.
+
+### Historical capability audit — CLI v0.2.0
 
 Recorded 2026-10-18 from the 2026-10-17 audit. These findings supersede older working-feature claims below; `Merged` records implementation history, not current operational success.
 
@@ -72,11 +86,11 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
-| 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48; capability and audit corrections included. |
-| 11.1 Saved-job Firestore recovery | Open | Collection paths, atomic history transforms, timestamps, visibility, and conflict guards implemented; transport regressions pass. Live write verification pending. |
+| 10.1 Shared HiringCafe CLI agent skill | Merged | Implemented in PR #48; capability and audit corrections included. |
+| 11.1 Saved-job Firestore recovery | Merged | PR #50 repairs paths, atomic history/timestamps, visibility, and conflict guards. Live write verification pending. |
 | 11.2 Save hydration recovery | Open | Investigate verified replacement for blocked hydration; implementation gated on live evidence. |
-| 11.3 Cache freshness recovery | Open | Override age, zero/negative TTL, and old-schema migration implemented; regression tests pass. Review and release pending. |
-| 11.4 DNS/public-read resilience | Open | Bounded public-read retries and safe diagnostics implemented; local and chen-lappy fresh searches passed. Original intermittent DNS cause remains unproven; review/release pending. |
+| 11.3 Cache freshness recovery | Merged | PR #51 repairs override age, zero/negative TTL, and old-schema migration; regressions, review, and CI pass. |
+| 11.4 DNS/public-read resilience | Merged | PR #52 adds bounded retries and safe diagnostics. Local/chen-lappy fresh searches passed; original DNS cause remains unproven. |
 | 11.5 Recovery patch release | Open | Review, merge, publish v0.2.1 and verify installed artifact after recovery checks. |
 
 
