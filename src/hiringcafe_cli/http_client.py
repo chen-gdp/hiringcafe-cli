@@ -1,10 +1,15 @@
 """Anonymous HiringCafe web and SSR HTTP client."""
 
+import errno
 import json
 import os
 import random
+import socket
+import ssl
 import time
 import urllib.parse
+from queue import Empty, Queue
+from threading import Thread
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -18,7 +23,7 @@ BROWSER_HEADERS = {
         "(KHTML, like Gecko) Chrome/128.0 Safari/537.36 hiringcafe-cli/0.1"
     ),
 }
-RETRYABLE_STATUSES = {408, 429, *range(500, 600)}
+RETRYABLE_STATUSES = {408, *range(500, 600)}
 MCP_URL_PATH = "/api/mcp"
 MCP_TOOLS = {"search_jobs", "get_job_details"}
 
@@ -52,7 +57,16 @@ class HireCafeTransportError(RuntimeError):
         """
         self.endpoint = endpoint
         self.cause = cause
-        super().__init__(f"{endpoint} transport failed: {cause}")
+        reason = cause.reason if isinstance(cause, URLError) else cause
+        if isinstance(reason, socket.gaierror):
+            detail = "DNS resolution failed"
+        elif isinstance(reason, TimeoutError):
+            detail = "request timed out"
+        else:
+            detail = "connection failed"
+        super().__init__(
+            f"{endpoint} transport failed: {detail}. Check the same command in the actual execution environment."
+        )
 
 
 def configured_base_url() -> str:
@@ -69,9 +83,19 @@ def configured_base_url() -> str:
 
 
 def retryable(error: Exception) -> bool:
-    """Classify whether an anonymous GET error may be retried."""
-    return isinstance(error, HireCafeTransportError) or (
-        isinstance(error, HireCafeHTTPError) and error.status in RETRYABLE_STATUSES
+    """Classify transient failures for verified public reads only."""
+    if isinstance(error, HireCafeHTTPError):
+        return error.status in RETRYABLE_STATUSES
+    if not isinstance(error, HireCafeTransportError):
+        return False
+    cause = error.cause.reason if isinstance(error.cause, URLError) else error.cause
+    if isinstance(cause, ssl.SSLError):
+        return False
+    if isinstance(cause, socket.gaierror):
+        return cause.errno == socket.EAI_AGAIN
+    return isinstance(cause, (TimeoutError, ConnectionError)) or (
+        isinstance(cause, OSError)
+        and cause.errno in {errno.EAGAIN, errno.EINTR, errno.ENETDOWN, errno.ENETUNREACH, errno.EHOSTUNREACH}
     )
 
 
@@ -79,7 +103,14 @@ class RetryPolicy:
     """Bounded exponential backoff with full jitter."""
 
     def __init__(self, count: int = 2, base: float = 0.5, timeout: float = 30) -> None:
-        self.count = count
+        """Initialize at most two retries sharing one total timeout budget.
+
+        Args:
+            count: Requested retries, capped at two.
+            base: Initial full-jitter backoff bound in seconds.
+            timeout: Total public-read request and retry budget in seconds.
+        """
+        self.count = max(0, min(count, 2))
         self.base = base
         self.timeout = timeout
         self.sleep = time.sleep
@@ -99,7 +130,7 @@ class WebClient:
 
         Args:
             base_url: HTTPS base URL; defaults to ``HIRINGCAFE_BASE_URL`` or production.
-            timeout: Per-request timeout in seconds.
+            timeout: Per-request timeout and total public-read budget in seconds.
         """
         self.base_url = base_url.rstrip("/") if base_url else configured_base_url()
         self.timeout = timeout
@@ -141,13 +172,7 @@ class WebClient:
             },
             method="POST",
         )
-        try:
-            with self.urlopen(request, timeout=self.timeout) as response:
-                response_body = read_limited(response, "mcp").decode("utf-8")
-        except HTTPError as error:
-            raise HireCafeHTTPError("mcp", error.code, error.reason) from error
-        except (URLError, TimeoutError, OSError) as error:
-            raise HireCafeTransportError("mcp", error) from error
+        response_body = self._read(request, "mcp")
         payload = self._json(response_body)
         if payload.get("jsonrpc") != "2.0" or type(payload.get("id")) is not int or payload["id"] != 1:
             raise ValueError("invalid HiringCafe MCP response")
@@ -237,19 +262,53 @@ class WebClient:
 
     def _get(self, url: str, endpoint: str) -> str:
         """GET a URL and return its decoded body."""
-        request = Request(url, headers=BROWSER_HEADERS)
-        for attempt in range(self.retry_policy.count + 1):
+        return self._read(Request(url, headers=BROWSER_HEADERS), endpoint)
+
+    def _read(self, request: Request, endpoint: str) -> str:
+        """Read a verified public request within one monotonic retry budget."""
+        deadline = time.monotonic() + self.retry_policy.timeout
+        results: Queue[str | Exception] = Queue(maxsize=1)
+
+        def read() -> None:
             try:
-                with self.urlopen(request, timeout=self.timeout) as response:
-                    return read_limited(response, endpoint).decode("utf-8")
+                results.put(self._read_until(request, endpoint, deadline))
+            except Exception as error:
+                results.put(error)
+
+        # shortcut: urllib cannot cancel OS DNS; use cancellable DNS if timed-out daemon reads accumulate.
+        Thread(target=read, daemon=True).start()
+        try:
+            result = results.get(timeout=max(0, deadline - time.monotonic()))
+        except Empty:
+            raise HireCafeTransportError(endpoint, TimeoutError()) from None
+        if isinstance(result, Exception):
+            raise result from None
+        return result
+
+    def _read_until(self, request: Request, endpoint: str, deadline: float) -> str:
+        """Run public read attempts, checking the deadline after every blocking operation."""
+        policy = self.retry_policy
+        for attempt in range(policy.count + 1):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                with self.urlopen(request, timeout=min(self.timeout, remaining)) as response:
+                    body = read_limited(response, endpoint).decode("utf-8")
+                if time.monotonic() >= deadline:
+                    break
+                return body
             except HTTPError as error:
                 wrapped = HireCafeHTTPError(endpoint, error.code, error.reason)
             except (URLError, TimeoutError, OSError) as error:
                 wrapped = HireCafeTransportError(endpoint, error)
-            if attempt == self.retry_policy.count or not retryable(wrapped):
-                raise wrapped
-            self.retry_policy.sleep(self.retry_policy.delay(attempt))
-        raise AssertionError("unreachable")
+            if attempt == policy.count or not retryable(wrapped):
+                raise wrapped from None
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            policy.sleep(min(policy.delay(attempt), remaining))
+        raise HireCafeTransportError(endpoint, TimeoutError()) from None
 
     def _json(self, body: str) -> dict:
         """Parse a JSON object response."""
