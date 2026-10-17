@@ -23,13 +23,13 @@ Check the relevant subcommand's help when using a different version. The CLI its
 
 ## Capability snapshot
 
-CLI **v0.2.1**, recovery checks **2026-10-18**, with authenticated-read evidence from **2026-10-17**. A successful check is evidence for that run, not a guarantee of future network availability. Use the repository's current [roadmap](../../../roadmap.md) and [README](../../../README.md) when assessing later releases.
+CLI **v0.2.1**, recovery and authenticated-read checks **2026-10-18**. A successful check is evidence for that run, not a guarantee of future network availability. Use the repository's current [roadmap](../../../roadmap.md) and [README](../../../README.md) when assessing later releases.
 
 | Capability | Status and limits |
 |---|---|
 | `search`, `count`, `job show`; JSON/JSONL | Live-verified. Search returns at most 10 jobs, at most one per company. Count can exceed the number returned. |
 | `auth status` and existing-session refresh | Live-verified; this does not verify a fresh login flow. |
-| `saved-jobs list` | Live-verified, at most 20 records. `--stage` exists and has offline coverage; each stage was not live-tested. Default listing excludes hidden jobs. |
+| `saved-jobs list` | Live-verified, at most 20 records. All seven stage-list queries passed on chen-lappy. Default listing excludes hidden jobs. |
 | `auth import`, `auth logout` | Offline-tested; the audit did not replace/delete real credentials. |
 | Email/password `auth login` | Implemented; fresh login was not live-tested in this audit. |
 | `saved-jobs save` | Still blocked: legacy raw hydration returns HTTP 403, and public-to-raw job identity mapping needs verification. Firestore write repairs have offline transport coverage, not a live save roundtrip. |
@@ -38,11 +38,23 @@ CLI **v0.2.1**, recovery checks **2026-10-18**, with authenticated-read evidence
 | `probe` | Live public search/detail probe verified; does not verify auth or mutations. |
 | Browser OAuth and advanced features | Unimplemented: structured filters/facets, search/saved-job pagination, tracker search/details, boards, notes/tags/journal, alerts, resume upload. |
 
-The upstream [MCP documentation](https://hiringcafe.com/documentation/hiringcafe-claude-connector) describes structured filters, but this CLI sends only search text and a fixed limit. A country or salary in the query is not evidence that the corresponding structured filter was applied. Never present returned jobs as a complete result set.
+The upstream [MCP documentation](https://hiringcafe.com/documentation/hiringcafe-claude-connector) describes structured filters, but published v0.2.1 sends only search text and a fixed limit; main's verified filter support is described below. A country or salary in query text is not evidence that the corresponding structured filter was applied. Never present returned jobs as a complete result set.
 
 Do not describe account mutations as live-verified or run them as diagnostic probes. Explain the saving blocker and stage/removal verification limits before a requested mutation. Never bypass a challenge or substitute an unverified write endpoint.
 
 ## Commands and output
+
+### Unreleased/main filter support
+
+Main adds `--location TEXT`, repeatable `--workplace Remote|Hybrid|Onsite`, repeatable `--employment-type` (Full Time, Part Time, Contract, Internship, Temporary, Seasonal, Volunteer), and `--limit 1..25` to search/count. These are not included in PyPI v0.2.1; check installed help first. Query text may be omitted for filters-only searches.
+
+```bash
+hiringcafe search "software engineer" --location Germany --workplace Remote --employment-type "Full Time" --limit 25 --json
+```
+
+Location is upstream geographic matching, not an exclusive country guarantee. Multiple values select alternatives within their family. Raw search state still requires searchQuery and additionally accepts location, workplace_types, employment_types, and limit; do not combine raw mode with query/flags. Arrays are canonicalized for cache keys/output, default limit 10 is omitted from query.searchState, and result.pageSize reflects the requested limit. Other upstream families and facets remain unsupported. The unreleased opt-in probe also checks a combined filter request and rejects contradictory workplace/employment metadata.
+
+### Published v0.2.1 commands and limits
 
 ```bash
 hiringcafe search "python developer" --json

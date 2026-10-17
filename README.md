@@ -11,7 +11,7 @@ Give your AI agent a Hiring Cafe command line: discover jobs, read full postings
 hiringcafe search "python developer" --jsonl
 ```
 
-The CLI gives your agent structured access to public jobs and, when authenticated, selected actions on your real Hiring Cafe account. Public search and job details use Hiring Cafe's [documented read-only MCP connector](https://hiringcafe.com/documentation/hiringcafe-claude-connector): each search returns at most 10 jobs, with at most one job per company and no pagination or filters yet. Requests are rate-limited; avoid high-frequency automated polling.
+The CLI gives your agent structured access to public jobs and, when authenticated, selected actions on your real Hiring Cafe account. Public search and job details use Hiring Cafe's [documented read-only MCP connector](https://hiringcafe.com/documentation/hiringcafe-claude-connector). Published v0.2.1 returns at most 10 jobs, one per company, without pagination or filter flags; unreleased filter support is documented below. Requests are rate-limited; avoid high-frequency automated polling.
 
 **v0.2.1 recovery:** cache freshness overrides and bounded public-read retries are repaired. Saved-job Firestore paths, history, timestamps, visibility, and conflict guards are repaired with transport tests, but account mutations have not passed a live roundtrip. Saving still needs verified raw hydration. Browser OAuth and structured CLI filters remain unimplemented. See the [current recovery status](roadmap.md#current-recovery-status--cli-v021) for evidence and limits.
 
@@ -107,13 +107,37 @@ Agent automation contract:
 - Provider passwords and Firebase ID tokens are never written to disk.
 - Authenticated mutations are never retried or cached.
 - Anonymous search/count responses use a 15-minute cache; job details use 24 hours.
-- Search returns at most 10 jobs, one per company; the CLI does not expose pagination or upstream structured filters.
+- Published v0.2.1 returns at most 10 jobs, one per company, without pagination or structured filter flags. Unreleased/main supports the verified filter flags below; check installed help first.
 - The CLI connects to MCP itself; public reads require neither a login nor a separate MCP plugin.
 - Public reads retry transient DNS/connection failures and HTTP 408/5xx at most twice within a 30-second caller deadline. HTTP 403/429, permanent DNS failures, certificate errors, malformed responses, and authenticated mutations do not retry.
 - DNS errors are network failures, not empty results. Retries do not repair host DNS configuration; the reported intermittent failure remains unexplained.
 - Invalid arguments fail before a network request is made.
 
 ## Commands
+
+### Unreleased structured filters
+
+The main branch adds structured filters to `search` and `count`; **PyPI v0.2.1 does not include these flags**. Check `search --help` before using them. Location follows HiringCafe's geographic matching and can include worldwide or multi-region roles; it is not an exclusive country guarantee.
+
+```bash
+hiringcafe search "software engineer" --location Germany --workplace Remote --employment-type "Full Time" --limit 25 --json
+hiringcafe count "software engineer" --location Germany --workplace Remote --json
+hiringcafe search --workplace Remote --workplace Hybrid --limit 5 --jsonl
+```
+
+`--workplace` accepts Remote, Hybrid, or Onsite; `--employment-type` accepts Full Time, Part Time, Contract, Internship, Temporary, Seasonal, or Volunteer. Repeat either flag to select alternatives. `--limit` accepts 1–25 and defaults to 10; one-job-per-company and no pagination still apply.
+
+Raw input uses the existing `searchQuery` key plus verified MCP filter names:
+
+```bash
+hiringcafe search --raw-search-state '{"searchQuery":"software engineer","location":"Germany","workplace_types":["Remote"],"employment_types":["Full Time"],"limit":5}' --json
+```
+
+Do not mix raw state with a positional query or filter/limit flags. Invalid types, values, and unknown keys exit 2 before cache/network access. Cache keys include all canonical arguments, so different filters never reuse an unfiltered entry. Equivalent raw/flag requests and reordered alternatives share the same canonical cache entry.
+
+Other upstream filter families and facet discovery are not exposed by this change. The [filter spec](specs/pr-8.4-search-filters-and-facets/spec.md) records schema and live evidence.
+
+### Published v0.2.1 commands
 
 | Command | Purpose |
 |---|---|
@@ -237,6 +261,6 @@ Every implementation change traces to `specs/pr-*/spec.md` and the roadmap. Neve
 
 Public search/count/details, existing-session authentication, and saved-job listing passed live checks. v0.2.1 adds cache/DNS resilience and Firestore repairs; saving still needs a verified hydration replacement, and live account mutations remain unverified. The original intermittent DNS cause is unresolved. Passing offline tests does not establish that account writes work. Python 3.11–3.14 CI and tagged PyPI releases are implemented.
 
-Structured filters are documented upstream but not exposed by this CLI; facets, tracker search/details, search/saved-job pagination, boards, notes/tags/journal, alerts, resume upload, and browser OAuth remain unimplemented. See the shared skill for command/output guidance and the versioned capability snapshot.
+Unreleased/main adds verified location/workplace/employment filters and a configurable result limit. Other upstream filter families, facets, tracker search/details, search/saved-job pagination, boards, notes/tags/journal, alerts, resume upload, and browser OAuth remain unimplemented. PyPI v0.2.1 does not include the new filter flags. See the shared skill for versioned command/output guidance.
 
 See [`roadmap.md`](roadmap.md) and [`specs/`](specs/) for the complete implementation status and PR specifications.

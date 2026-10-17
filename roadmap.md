@@ -18,7 +18,7 @@ Recorded 2026-10-18 after recovery PRs #50–#52 merged. The historical audit be
 | Saving | Incomplete. Legacy/SSR/Next-data hydration requests are challenged from the CLI. Public MCP IDs differ from raw tracker object IDs; verify an authoritative mapping and website-compatible hydration before changing the save path. |
 | Remaining features | Browser OAuth and structured CLI filters are still unimplemented. The local Firebase project configuration confirms localhost is authorized, but a real browser/provider callback is still required. |
 
-All 241 combined offline tests and pre-commit passed. Each recovery PR passed Python 3.11–3.14 CI and independent review with no findings. These are not proof of live account mutations. PR 11.5 prepares v0.2.1; release workflow/PyPI/installed-artifact verification must complete before recording publication.
+All 241 combined offline tests and pre-commit passed, including an isolated built-wheel run. Each recovery PR passed Python 3.11–3.14 CI and independent review with no findings. Release run [39061077954](https://github.com/chen-gdp/hiringcafe-cli/actions/runs/39061077954) published [v0.2.1](https://github.com/chen-gdp/hiringcafe-cli/releases/tag/v0.2.1); downloaded artifacts pass checksum/content checks and their digests match PyPI. The uv-installed chen-lappy v0.2.1 passed default cache miss/hit, zero TTL, shared count cache, fresh regional searches/details, existing-session status, saved listing, and all seven stage-list queries. Counts only were logged. These checks do not prove full mutation-command or browser OAuth support.
 
 ### Historical capability audit — CLI v0.2.0
 
@@ -80,7 +80,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
 | 8.3.4 Runtime package version sync | Merged | Implemented in PR #44; released as `v0.1.5`. |
 | 8.3.5 Published-package README guide | Merged | Implemented in PR #45. |
-| 8.4 Search filters and facets | Deferred | MCP filters are documented but not exposed; verify each selected filter. Exact facet contract remains unknown. |
+| 8.4 Search filters and facets | In review | Location/workplace/employment/limit flags, raw-state validation, canonical shared cache keys, and probe implemented. 468 offline tests, pre-commit, and live CLI cache/filter checks pass. Not in PyPI v0.2.1; other families and facets remain gated. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
@@ -91,7 +91,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 11.2 Save hydration recovery | Open | Investigate verified replacement for blocked hydration; implementation gated on live evidence. |
 | 11.3 Cache freshness recovery | Merged | PR #51 repairs override age, zero/negative TTL, and old-schema migration; regressions, review, and CI pass. |
 | 11.4 DNS/public-read resilience | Merged | PR #52 adds bounded retries and safe diagnostics. Local/chen-lappy fresh searches passed; original DNS cause remains unproven. |
-| 11.5 Recovery patch release | Open | Review, merge, publish v0.2.1 and verify installed artifact after recovery checks. |
+| 11.5 Recovery patch release | Merged | PR #53 published v0.2.1; release run 39061077954 succeeded, PyPI/GitHub hashes match, and installed chen-lappy reads/cache/auth/stage-list checks passed. |
 
 
 ## Product goal

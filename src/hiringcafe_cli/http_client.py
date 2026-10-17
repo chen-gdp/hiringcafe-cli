@@ -136,7 +136,7 @@ class WebClient:
         self.timeout = timeout
         self.retry_policy = RetryPolicy(timeout=timeout)
 
-    def call_mcp_tool(self, name: str, arguments: dict[str, str | int]) -> str:
+    def call_mcp_tool(self, name: str, arguments: dict[str, str | int | list[str]]) -> str:
         """Call a documented read-only HiringCafe MCP tool and return its text content.
 
         Args:
