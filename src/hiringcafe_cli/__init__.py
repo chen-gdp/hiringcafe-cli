@@ -20,7 +20,7 @@ from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseTransportError
 from hiringcafe_cli.http_client import HireCafeHTTPError, HireCafeTransportError
 from hiringcafe_cli.saved_jobs import VALID_STAGES
 from hiringcafe_cli.saved_jobs_list import FirestoreError
-from hiringcafe_cli.search_state import InvalidSearchState
+from hiringcafe_cli.search_state import FILTER_CHOICES, InvalidSearchState
 
 try:
     __version__ = version("hiringcafe-cli")
@@ -59,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     probe_parser = subparsers.add_parser("probe", help="run the opt-in live endpoint probe")
     probe_parser.set_defaults(handler=probe.main)
     search_parser = subparsers.add_parser("search", help="search jobs", parents=[cache_options])
-    search_parser.add_argument("query", nargs="?", default="")
+    search_parser.add_argument("query", nargs="?")
     search_parser.add_argument("--page", type=int, default=0)
     search_parser.add_argument("--pages", type=int, default=1)
     search_parser.add_argument("--raw-search-state")
@@ -67,10 +67,19 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--jsonl", action="store_true")
     search_parser.set_defaults(handler=search.run)
     count_parser = subparsers.add_parser("count", help="print total result count", parents=[cache_options])
-    count_parser.add_argument("query", nargs="?", default="")
+    count_parser.add_argument("query", nargs="?")
     count_parser.add_argument("--raw-search-state")
     count_parser.add_argument("--json", action="store_true")
     count_parser.set_defaults(handler=count.run)
+    for read_parser in (search_parser, count_parser):
+        read_parser.add_argument("--location")
+        read_parser.add_argument(
+            "--workplace", dest="workplace_types", action="append", choices=FILTER_CHOICES["workplace_types"]
+        )
+        read_parser.add_argument(
+            "--employment-type", dest="employment_types", action="append", choices=FILTER_CHOICES["employment_types"]
+        )
+        read_parser.add_argument("--limit", type=int, help="maximum results, 1–25 (default: 10)")
     job_parser = subparsers.add_parser("job", help="inspect job details")
     job_subparsers = job_parser.add_subparsers(dest="job_command", required=True)
     job_show_parser = job_subparsers.add_parser("show", help="show a job description", parents=[cache_options])
@@ -129,6 +138,8 @@ def main(argv: list[str] | None = None) -> None:
     """
     parser = build_parser()
     arguments = parser.parse_args(argv)
+    if getattr(arguments, "raw_search_state", None) is not None and arguments.query is not None:
+        parser.error("use query or raw search state, not both")
     ttl = getattr(arguments, "cache_ttl", None)
     if ttl is not None and ttl < 0:
         parser.error("--cache-ttl must be nonnegative")

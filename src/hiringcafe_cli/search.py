@@ -6,55 +6,46 @@ import os
 from hiringcafe_cli.cache import active_cache_root, cache_read, cache_write
 from hiringcafe_cli.http_client import WebClient, configured_base_url
 from hiringcafe_cli.mcp import parse_search_response
-from hiringcafe_cli.search_state import InvalidSearchState, build_search_state
+from hiringcafe_cli.search_state import SEARCH_FILTER_KEYS, InvalidSearchState, build_search_arguments
+from hiringcafe_cli.search_state import SEARCH_LIMIT as SEARCH_LIMIT
 
 SEARCH_TTL = 900
-SEARCH_LIMIT = 10
 
 
 def search(
-    query: str,
+    query: str | None,
     page: int,
     raw_search_state: str | None = None,
     no_cache: bool = False,
     cache_ttl: int | None = None,
+    filters: dict | None = None,
 ) -> dict:
     """Fetch and normalize the supported public search response.
 
     Args:
-        query: Query-text mode.
+        query: Query-text mode; an empty string retains the legacy raw-state calling convention.
         page: Compatibility page number; only page zero is supported.
         raw_search_state: Optional raw JSON object mode.
+        no_cache: Bypass anonymous cache reads and writes.
+        cache_ttl: Optional cache age and lifetime override in seconds.
+        filters: Optional verified filter arguments using canonical MCP names.
 
     Returns:
         Stable version-1 search envelope.
     """
-    state = build_search_state(
-        query=query if raw_search_state is None or query else None,
-        raw_search_state=raw_search_state,
-    )
-    if set(state) - {"searchQuery"}:
-        raise InvalidSearchState(
-            "HiringCafe's supported search interface accepts query text only; filters are not supported"
-        )
-    if "searchQuery" not in state:
-        raise InvalidSearchState("raw search state must contain searchQuery")
-    search_query = state.get("searchQuery", "")
-    if not isinstance(search_query, str):
-        raise InvalidSearchState("searchQuery must be a string")
+    query = None if raw_search_state is not None and query == "" else query
+    state, arguments = build_search_arguments(query, raw_search_state, filters)
     if page != 0:
         raise InvalidSearchState("HiringCafe's supported search interface does not provide pagination; use --page 0")
     cache_root = active_cache_root()
     base_url = configured_base_url()
-    key = ("mcp-search-v1", base_url, search_query, SEARCH_LIMIT)
+    key = ("mcp-search-v2", base_url, arguments)
     enabled = no_cache is False and not os.environ.get("HIRINGCAFE_NO_CACHE")
     ttl = SEARCH_TTL if cache_ttl is None else cache_ttl
     cached = cache_read(key, ttl, cache_root, enabled=enabled)
     if cached is not None:
         return cached
-    parsed = parse_search_response(
-        WebClient().call_mcp_tool("search_jobs", {"search": search_query, "limit": SEARCH_LIMIT})
-    )
+    parsed = parse_search_response(WebClient().call_mcp_tool("search_jobs", arguments))
     jobs = parsed["jobs"]
     total_count = parsed["totalCount"]
     envelope = {
@@ -63,7 +54,7 @@ def search(
         "result": {
             "totalCount": total_count,
             "companyCount": None,
-            "pageSize": SEARCH_LIMIT,
+            "pageSize": arguments["limit"],
             "page": 0,
             "isLastPage": total_count <= len(jobs),
             "paginationSupported": False,
@@ -88,6 +79,7 @@ def run(argv: list[str], json_output: bool) -> int:
         argv.raw_search_state,
         no_cache=getattr(argv, "no_cache", False),
         cache_ttl=getattr(argv, "cache_ttl", None),
+        filters={key: getattr(argv, key) for key in SEARCH_FILTER_KEYS if getattr(argv, key, None) is not None},
     )
     if getattr(argv, "jsonl", False):
         for job in envelope["result"]["jobs"]:
