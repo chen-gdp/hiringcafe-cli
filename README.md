@@ -1,6 +1,6 @@
 # HiringCafe CLI
 
-Give your AI agent Hiring Cafe superpowers: search jobs, inspect postings, and keep your real Hiring Cafe saved-job board in sync without a browser.
+Give your AI agent a Hiring Cafe command line: discover jobs, read full postings, and inspect your saved-job list.
 
 [![PyPI](https://img.shields.io/pypi/v/hiringcafe-cli.svg)](https://pypi.org/project/hiringcafe-cli/)
 [![Python](https://img.shields.io/pypi/pyversions/hiringcafe-cli.svg)](https://pypi.org/project/hiringcafe-cli/)
@@ -12,6 +12,8 @@ hiringcafe search "python developer" --jsonl
 ```
 
 The CLI gives your agent structured access to public jobs and, when authenticated, selected actions on your real Hiring Cafe account. Public search and job details use Hiring Cafe's [documented read-only MCP connector](https://hiringcafe.com/documentation/hiringcafe-claude-connector): each search returns at most 10 jobs, with at most one job per company and no pagination or filters yet. Requests are rate-limited; avoid high-frequency automated polling.
+
+**v0.2.0 capability audit:** public reads, existing-session authentication, and saved-job listing passed live checks on 2026-10-17. Saving, staging, and removing jobs have known blockers/defects. Browser OAuth is not implemented. Upstream MCP documents structured filters, but the current CLI does not expose them. See the [current capability audit](roadmap.md#current-capability-audit--cli-v020) for evidence and limits.
 
 > **Unofficial client.** This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change.
 
@@ -105,7 +107,9 @@ Agent automation contract:
 - Provider passwords and Firebase ID tokens are never written to disk.
 - Authenticated mutations are never retried or cached.
 - Anonymous search/count responses use a 15-minute cache; job details use 24 hours.
-- Search returns at most 10 jobs, one per company; pagination and filters are not supported by the current upstream interface.
+- Search returns at most 10 jobs, one per company; the CLI does not expose pagination or upstream structured filters.
+- The CLI connects to MCP itself; public reads require neither a login nor a separate MCP plugin.
+- MCP requests do not automatically retry. DNS errors are network failures, not empty search results; the reported intermittent failure remains unresolved.
 - Invalid arguments fail before a network request is made.
 
 ## Commands
@@ -118,13 +122,15 @@ Agent automation contract:
 | `hiringcafe job show <objectID> --json` | Inspect one job posting |
 | `hiringcafe auth login --email you@example.com` | Authenticate interactively |
 | `hiringcafe auth import` | Import an existing Firebase refresh token |
-| `hiringcafe auth status` | Check whether a local session exists |
+| `hiringcafe auth status --json` | Verify that the stored credential can refresh |
 | `hiringcafe auth logout` | Remove the local session |
 | `hiringcafe saved-jobs list --json` | List saved jobs |
-| `hiringcafe saved-jobs save <objectID>` | Save a job |
-| `hiringcafe saved-jobs stage <objectID> --stage applied` | Change a job stage |
-| `hiringcafe saved-jobs remove <objectID> --yes` | Remove a saved job |
+| `hiringcafe saved-jobs list --stage applied --json` | List up to 20 jobs in one stage |
+| `hiringcafe saved-jobs save <objectID>` | Present but blocked/broken; see below |
+| `hiringcafe saved-jobs stage <objectID> --stage applied` | Present but broken; see below |
+| `hiringcafe saved-jobs remove <objectID> --yes` | Present but broken; see below |
 | `hiringcafe cache purge` | Remove cached anonymous reads |
+| `LIVE=1 hiringcafe probe` | Verify live public search/details only |
 
 Every command supports `--help`, for example:
 
@@ -152,11 +158,15 @@ printf '%s\n' "$HIRINGCAFE_REFRESH_TOKEN" | hiringcafe auth import
 
 The CLI stores only the refresh token in an owner-only local session file. It does not store your password or short-lived Firebase ID token. Browser OAuth login is intentionally deferred until its real provider and loopback callback behavior can be verified.
 
+The latest audit verified existing-session refresh, not a new email/password login. Token import and logout have offline test coverage. Logging into the website does not automatically authenticate the CLI.
+
 ## Saved jobs
 
-These commands modify your real Hiring Cafe account. Review object IDs and confirmation prompts before changing data.
+`saved-jobs list` reads your account and returns at most 20 records. It excludes hidden jobs unless requested with `--stage hidden`; saved-job pagination is not implemented.
 
-`saved-jobs save` currently depends on an older raw job-hydration endpoint that is returning a Cloudflare challenge from the CLI host. It may fail before saving; the read-only MCP connector does not support saved-job writes or provide the raw object needed by this command. Listing, staging, and removing saved jobs use separate authenticated flows.
+**Do not rely on v0.2.0 saved-job mutations.** Save's legacy hydration dependency returned HTTP 403. Save/stage/remove construct document paths without the `savedJobs/` collection; save/stage also serialize history incorrectly, and stage changes omit the hidden-state update. These are implementation defects even with valid authentication. The read-only MCP connector does not provide saved-job writes or the raw hydration object. The audit did not execute live mutations.
+
+The following syntax exists for compatibility, but is not a working workflow until those defects are repaired:
 
 ```bash
 hiringcafe saved-jobs save <objectID> --stage saved
@@ -182,6 +192,8 @@ hiringcafe cache purge
 ```
 
 Authenticated saved-job operations are never cached.
+
+In v0.2.0, `--cache-ttl` affects newly written entries but does not shorten an existing entry's lifetime, even when set to zero. Use `--no-cache` when fresh data is required. A normal cache miss also makes a network request; neither mode fixes DNS. Setting `HIRINGCAFE_NO_CACHE=1` disables cache reads and writes for public reads.
 
 ## Exit codes
 
@@ -218,6 +230,8 @@ Every implementation change traces to `specs/pr-*/spec.md` and the roadmap. Neve
 
 ## Project status
 
-Public search, job details, authentication, saved-job listing/staging/removal, retries, caching, Python 3.11–3.14 CI, and tagged PyPI releases are implemented. Saved-job save is currently blocked by the challenged raw hydration route. Filters/facets, tracker search, saved-job pagination, and browser OAuth login remain deferred until their upstream contracts are verified.
+Public search/count/details, existing-session authentication, and saved-job listing passed the latest live audit. Save/stage/remove need implementation fixes; the cache TTL override has a known limitation, and the intermittent DNS issue is unresolved. Passing offline tests does not establish that account writes work. Python 3.11–3.14 CI and tagged PyPI releases are implemented.
+
+Structured filters are documented upstream but not exposed by this CLI; facets, tracker search/details, search/saved-job pagination, boards, notes/tags/journal, alerts, resume upload, and browser OAuth remain unimplemented. See the shared skill for command/output guidance and the versioned capability snapshot.
 
 See [`roadmap.md`](roadmap.md) and [`specs/`](specs/) for the complete implementation status and PR specifications.
