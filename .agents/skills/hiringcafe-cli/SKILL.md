@@ -23,7 +23,7 @@ Check the relevant subcommand's help when using a different version. The CLI its
 
 ## Capability snapshot
 
-CLI **v0.2.0**, audited **2026-10-17**, documented **2026-10-18**. A successful check is evidence for that run, not a guarantee of future network availability. Use the repository's current [roadmap](../../../roadmap.md) and [README](../../../README.md) when assessing later releases.
+CLI **v0.2.1**, recovery checks **2026-10-18**, with authenticated-read evidence from **2026-10-17**. A successful check is evidence for that run, not a guarantee of future network availability. Use the repository's current [roadmap](../../../roadmap.md) and [README](../../../README.md) when assessing later releases.
 
 | Capability | Status and limits |
 |---|---|
@@ -32,15 +32,15 @@ CLI **v0.2.0**, audited **2026-10-17**, documented **2026-10-18**. A successful 
 | `saved-jobs list` | Live-verified, at most 20 records. `--stage` exists and has offline coverage; each stage was not live-tested. Default listing excludes hidden jobs. |
 | `auth import`, `auth logout` | Offline-tested; the audit did not replace/delete real credentials. |
 | Email/password `auth login` | Implemented; fresh login was not live-tested in this audit. |
-| `saved-jobs save` | Blocked/broken: raw hydration returned HTTP 403; document paths and history serialization also contain defects. |
-| `saved-jobs stage`, `saved-jobs remove` | Broken document-read prerequisite: requests omit the `savedJobs/` collection. Stage changes also have history/hidden-state defects. |
-| Cache/purge | Cache hits and isolated purge verified; `--no-cache` passes offline coverage. TTL override caveat below. |
+| `saved-jobs save` | Still blocked: legacy raw hydration returns HTTP 403, and public-to-raw job identity mapping needs verification. Firestore write repairs have offline transport coverage, not a live save roundtrip. |
+| `saved-jobs stage`, `saved-jobs remove` | Collection-qualified reads repaired. Transport regressions and a temporary hidden-record Firestore history/conflict/cleanup check passed; full commands and marketplace/website synchronization remain unverified. |
+| Cache/purge | TTL overrides, zero/negative TTL, schema migration, bypasses, and callers pass offline regressions. Cache hits and isolated purge were live-verified in the prior audit. |
 | `probe` | Live public search/detail probe verified; does not verify auth or mutations. |
 | Browser OAuth and advanced features | Unimplemented: structured filters/facets, search/saved-job pagination, tracker search/details, boards, notes/tags/journal, alerts, resume upload. |
 
 The upstream [MCP documentation](https://hiringcafe.com/documentation/hiringcafe-claude-connector) describes structured filters, but this CLI sends only search text and a fixed limit. A country or salary in the query is not evidence that the corresponding structured filter was applied. Never present returned jobs as a complete result set.
 
-Do not describe v0.2.0 mutations as working or run them as diagnostic probes. For a requested mutation, explain the known blocker; recheck support after a verified implementation fix. Never bypass a challenge or substitute an unverified write endpoint.
+Do not describe account mutations as live-verified or run them as diagnostic probes. Explain the saving blocker and stage/removal verification limits before a requested mutation. Never bypass a challenge or substitute an unverified write endpoint.
 
 ## Commands and output
 
@@ -56,7 +56,7 @@ hiringcafe cache purge
 LIVE=1 hiringcafe probe
 ```
 
-Replace `<objectID>` with a search result's `id`; do not use arbitrary words as IDs. Preserve returned application and HiringCafe attribution links.
+For `job show`, replace `<objectID>` with a public search result's `id`; do not use arbitrary words as IDs. Public IDs can differ from raw saved-job IDs. An explicitly requested stage/removal must use the existing saved record's `id`; never guess the mapping. Preserve returned application and HiringCafe attribution links.
 
 - `search --json`: jobs in `result.jobs`, total in `result.totalCount`, `paginationSupported: false` inside `result`.
 - `search --jsonl`: one job object per line, without an envelope. Choose either JSON or JSONL.
@@ -65,7 +65,7 @@ Replace `<objectID>` with a search result's `id`; do not use arbitrary words as 
 - Read exit status before parsing stdout. Diagnostics/cache notices go to stderr. `auth status --json` with no session emits `authenticated: false` and exits 4.
 - Search accepts only `--page 0 --pages 1`. Search/count accept `--raw-search-state '{"searchQuery":"python"}'` as an alternative to positional query text; other fields are rejected.
 - Saved-job stages: `saved`, `applied`, `interviewing`, `offer`, `rejected`, `ghosted`, `hidden`. Use `list --stage hidden` to request hidden jobs.
-- Mutation syntax exists but is broken in this snapshot: `saved-jobs save <objectID> [--stage saved]`, `saved-jobs stage <objectID> --stage applied`, `saved-jobs remove <objectID> [--yes]`.
+- Mutation syntax exists, subject to the support limits above: `saved-jobs save <objectID> [--stage saved]`, `saved-jobs stage <objectID> --stage applied`, `saved-jobs remove <objectID> [--yes]`. A partial failure can leave marketplace and Firestore state out of sync; inspect state before another mutation.
 - `probe` makes live public requests only with `LIVE=1`. Without it, exit 0 means skipped, not verified. Run a probe only when live verification is relevant; avoid repetitive polling.
 
 ## Authentication and local data
@@ -83,7 +83,7 @@ Only the refresh token is persisted in an owner-only session file; passwords and
 
 Search/count share a 900-second cache; job details use 86400 seconds. A valid hit avoids the network; a miss/expiry requires it. `--no-cache` on search/count/job show bypasses reads and writes; any nonempty `HIRINGCAFE_NO_CACHE` does the same. Authenticated operations are never cached.
 
-`--cache-ttl SECONDS` sets expiry for newly written entries, but v0.2.0 ignores it when reading an existing entry, even with zero. Use `--no-cache` for freshness. `cache purge` removes the selected cache's entries; do not routinely purge a user's cache to diagnose DNS.
+`--cache-ttl SECONDS` enforces both the requested maximum age and the stored expiry; a longer value does not extend an existing entry. Zero always fetches fresh data without storing it. Negative TTL exits 2 before I/O. Legacy entries without write times miss once. `cache purge` removes the selected cache's entries; do not routinely purge a user's cache to diagnose DNS.
 
 ## Errors and DNS
 
@@ -97,9 +97,9 @@ Search/count share a 900-second cache; job details use 86400 seconds. A valid hi
 | 5 | Credential rejected; user reauthentication is needed |
 | 6 | Missing write prerequisite/conflict; inspect state, do not blindly repeat a mutation |
 
-`mcp transport failed: ... Name or service not known` means name resolution failed before the service returned a response. The reported intermittent failure remains unresolved. Compare the same command in the failing execution environment and the user's normal terminal; record exit/error without secrets. OAuth, changing query text, or `--no-cache` does not repair DNS. Do not infer an empty result or a bad credential from this error.
+`mcp transport failed: DNS resolution failed` (or the older `Name or service not known`) means name resolution failed before the service returned a response. The original intermittent failure remains unexplained; fresh checks passed locally and over SSH on chen-lappy. Compare the same command in the failing execution environment and the user's normal terminal; record exit/error without secrets. OAuth, changing query text, or `--no-cache` does not repair DNS. Do not infer an empty result or a bad credential from this error.
 
-MCP public requests have no automatic retry, although a separate legacy GET retry policy exists. If a public read appears transiently interrupted, one bounded retry is reasonable; stop on repeated failure and report the environment evidence. Never automatically retry authenticated mutations or repeatedly retry an HTTP 403 challenge.
+Public reads automatically retry transient DNS (`EAI_AGAIN`), connection failures, and HTTP 408/5xx at most twice within a 30-second caller deadline. Permanent DNS (`EAI_NONAME`), 403/429, certificate errors, and invalid responses do not retry. Stop on persistent failure and report the environment evidence; do not add repeated outer retries. Never automatically retry authenticated mutations. A blocked OS resolver may linger in a daemon worker after caller timeout, without further attempts after expiry.
 
 ## Account and credential safety
 

@@ -26,3 +26,9 @@ This PR does not claim to replace blocked job hydration or repair inaccessible m
 - History is appended, not replaced; hidden state and timestamp types stay consistent.
 - Concurrent-change/missing-document errors are conflicts, and authenticated requests never retry.
 - Offline suite, Ruff, pre-commit, and supported Python CI pass; README/skill/roadmap distinguish implementation repair from live verification.
+
+## Live substrate verification — 2026-10-18
+
+A new, randomly identified hidden test record was create-only committed using an existing session, read, merge-updated with an appended history entry, and read again. The service preserved the original history and unrelated title field, returned timestampValue date data, and rejected a stale updateTime as a conflict. A version-guarded DELETE succeeded afterward. No pre-existing job was changed, and no authenticated operation retried.
+
+An absent-document preflight GET returned a permission error, so creation used an atomic exists:false precondition rather than interpreting a denied read as absence. This does not prove website rendering, marketplace synchronization, or the full save/stage/remove commands; PR 11.2 remains open.

@@ -13,9 +13,7 @@ hiringcafe search "python developer" --jsonl
 
 The CLI gives your agent structured access to public jobs and, when authenticated, selected actions on your real Hiring Cafe account. Public search and job details use Hiring Cafe's [documented read-only MCP connector](https://hiringcafe.com/documentation/hiringcafe-claude-connector): each search returns at most 10 jobs, with at most one job per company and no pagination or filters yet. Requests are rate-limited; avoid high-frequency automated polling.
 
-**v0.2.0 capability audit:** public reads, existing-session authentication, and saved-job listing passed live checks on 2026-10-17. Saving, staging, and removing jobs have known blockers/defects. Browser OAuth is not implemented. Upstream MCP documents structured filters, but the current CLI does not expose them. See the [current capability audit](roadmap.md#current-capability-audit--cli-v020) for evidence and limits.
-
-Unreleased recovery work repairs saved-job Firestore paths, atomic history writes, timestamps, and hidden-state updates under [PR 11.1's spec](specs/pr-11.1-saved-job-recovery/spec.md). These repairs are covered by offline transport tests, not yet a live mutation roundtrip. Saving still requires a verified replacement for blocked job hydration; this is not a claim that published v0.2.0 mutations work.
+**v0.2.1 recovery:** cache freshness overrides and bounded public-read retries are repaired. Saved-job Firestore paths, history, timestamps, visibility, and conflict guards are repaired with transport tests, but account mutations have not passed a live roundtrip. Saving still needs verified raw hydration. Browser OAuth and structured CLI filters remain unimplemented. See the [current recovery status](roadmap.md#current-recovery-status--cli-v021) for evidence and limits.
 
 > **Unofficial client.** This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change.
 
@@ -111,9 +109,8 @@ Agent automation contract:
 - Anonymous search/count responses use a 15-minute cache; job details use 24 hours.
 - Search returns at most 10 jobs, one per company; the CLI does not expose pagination or upstream structured filters.
 - The CLI connects to MCP itself; public reads require neither a login nor a separate MCP plugin.
-- MCP requests do not automatically retry. DNS errors are network failures, not empty search results; the reported intermittent failure remains unresolved.
-
-Unreleased [public-read recovery](specs/pr-11.4-dns-read-resilience/spec.md) adds at most two retries for transient DNS/connection failures and HTTP 408/5xx, sharing a 30-second caller deadline. HTTP 403/429, certificate failures, malformed responses, and authenticated mutations do not retry. This improves resilience; it does not repair a host's DNS configuration.
+- Public reads retry transient DNS/connection failures and HTTP 408/5xx at most twice within a 30-second caller deadline. HTTP 403/429, permanent DNS failures, certificate errors, malformed responses, and authenticated mutations do not retry.
+- DNS errors are network failures, not empty results. Retries do not repair host DNS configuration; the reported intermittent failure remains unexplained.
 - Invalid arguments fail before a network request is made.
 
 ## Commands
@@ -130,9 +127,9 @@ Unreleased [public-read recovery](specs/pr-11.4-dns-read-resilience/spec.md) add
 | `hiringcafe auth logout` | Remove the local session |
 | `hiringcafe saved-jobs list --json` | List saved jobs |
 | `hiringcafe saved-jobs list --stage applied --json` | List up to 20 jobs in one stage |
-| `hiringcafe saved-jobs save <objectID>` | Present but blocked/broken; see below |
-| `hiringcafe saved-jobs stage <objectID> --stage applied` | Present but broken; see below |
-| `hiringcafe saved-jobs remove <objectID> --yes` | Present but broken; see below |
+| `hiringcafe saved-jobs save <objectID>` | Blocked on verified raw hydration; see below |
+| `hiringcafe saved-jobs stage <objectID> --stage applied` | Firestore repair tested; live flow unverified |
+| `hiringcafe saved-jobs remove <objectID> --yes` | Document-read repair tested; live flow unverified |
 | `hiringcafe cache purge` | Remove cached anonymous reads |
 | `LIVE=1 hiringcafe probe` | Verify live public search/details only |
 
@@ -168,9 +165,11 @@ The latest audit verified existing-session refresh, not a new email/password log
 
 `saved-jobs list` reads your account and returns at most 20 records. It excludes hidden jobs unless requested with `--stage hidden`; saved-job pagination is not implemented.
 
-**Do not rely on v0.2.0 saved-job mutations.** Save's legacy hydration dependency returned HTTP 403. Save/stage/remove construct document paths without the `savedJobs/` collection; save/stage also serialize history incorrectly, and stage changes omit the hidden-state update. These are implementation defects even with valid authentication. The read-only MCP connector does not provide saved-job writes or the raw hydration object. The audit did not execute live mutations.
+**Full mutation-command support is not yet verified.** v0.2.1 repairs the missing `savedJobs/` collection, atomic history/timestamp encoding, hidden-state changes, and guarded stage writes. Offline transport tests and a disposable hidden-record Firestore create/read/history/conflict/cleanup check passed. The full commands, marketplace synchronization, and website rendering still need a live roundtrip. Save's legacy hydration returns HTTP 403; the read-only MCP connector does not provide writes or a raw object proven compatible with the website.
 
-The following syntax exists for compatibility, but is not a working workflow until those defects are repaired:
+Public search IDs and raw saved-job `objectID` values can differ. Use an existing saved record's `id` for an explicitly requested stage/removal; do not guess the public-to-raw mapping or run mutations as diagnostic probes. Partial failures can leave Firestore and marketplace state out of sync—inspect state before another mutation.
+
+The following syntax exists, subject to those limits:
 
 ```bash
 hiringcafe saved-jobs save <objectID> --stage saved
@@ -197,9 +196,9 @@ hiringcafe cache purge
 
 Authenticated saved-job operations are never cached.
 
-In v0.2.0, `--cache-ttl` affects newly written entries but does not shorten an existing entry's lifetime, even when set to zero. Use `--no-cache` when fresh data is required. A normal cache miss also makes a network request; neither mode fixes DNS. Setting `HIRINGCAFE_NO_CACHE=1` disables cache reads and writes for public reads.
+`--cache-ttl` enforces both the requested maximum age and the entry's original expiry. Zero TTL always fetches fresh data without storing it; negative TTL exits 2 before cache/network access. Older entries without verifiable write times are discarded on their next read. A longer TTL cannot extend an existing entry's original expiry.
 
-The unreleased [cache recovery](specs/pr-11.3-cache-ttl-recovery/spec.md) enforces both the requested maximum age and the entry's original expiry. Zero TTL always fetches fresh data without storing it; negative TTL is rejected. Older entries without verifiable write times are discarded on their next read.
+`--no-cache` or `HIRINGCAFE_NO_CACHE=1` bypasses cache reads and writes. A normal cache miss also makes a network request; neither mode fixes DNS.
 
 ## Exit codes
 
@@ -236,7 +235,7 @@ Every implementation change traces to `specs/pr-*/spec.md` and the roadmap. Neve
 
 ## Project status
 
-Public search/count/details, existing-session authentication, and saved-job listing passed the latest live audit. Save/stage/remove need implementation fixes; the cache TTL override has a known limitation, and the intermittent DNS issue is unresolved. Passing offline tests does not establish that account writes work. Python 3.11–3.14 CI and tagged PyPI releases are implemented.
+Public search/count/details, existing-session authentication, and saved-job listing passed live checks. v0.2.1 adds cache/DNS resilience and Firestore repairs; saving still needs a verified hydration replacement, and live account mutations remain unverified. The original intermittent DNS cause is unresolved. Passing offline tests does not establish that account writes work. Python 3.11–3.14 CI and tagged PyPI releases are implemented.
 
 Structured filters are documented upstream but not exposed by this CLI; facets, tracker search/details, search/saved-job pagination, boards, notes/tags/journal, alerts, resume upload, and browser OAuth remain unimplemented. See the shared skill for command/output guidance and the versioned capability snapshot.
 
