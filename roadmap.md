@@ -80,7 +80,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
 | 8.3.4 Runtime package version sync | Merged | Implemented in PR #44; released as `v0.1.5`. |
 | 8.3.5 Published-package README guide | Merged | Implemented in PR #45. |
-| 8.4 Search filters and facets | In review | Location/workplace/employment/limit flags, raw-state validation, canonical shared cache keys, and probe implemented. 468 offline tests, pre-commit, and live CLI cache/filter checks pass. Not in PyPI v0.2.1; other families and facets remain gated. |
+| 8.4 Search filters and facets | Partial | PR #54 implements location/workplace/employment/limit flags, raw-state validation, canonical shared cache keys, and probe. 470 offline tests, pre-commit, and live CLI cache/filter checks pass. Not in PyPI v0.2.1; other families and facets remain gated. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |

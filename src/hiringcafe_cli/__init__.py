@@ -138,6 +138,8 @@ def main(argv: list[str] | None = None) -> None:
     """
     parser = build_parser()
     arguments = parser.parse_args(argv)
+    if getattr(arguments, "raw_search_state", None) is not None and arguments.query is not None:
+        parser.error("use query or raw search state, not both")
     ttl = getattr(arguments, "cache_ttl", None)
     if ttl is not None and ttl < 0:
         parser.error("--cache-ttl must be nonnegative")

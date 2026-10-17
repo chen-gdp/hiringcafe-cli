@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented for review, verified 2026-10-18. The first verified CLI surface is location, workplace, employment type, and result limit. Other documented upstream filter families require their own verification before expansion. Facets remain independently blocked on their exact contract. The earlier SSR-only design is superseded.
+Verified filters implemented by PR #54, checked 2026-10-18. The first verified CLI surface is location, workplace, employment type, and result limit. Other documented upstream filter families require their own verification before expansion. Facets remain independently blocked on their exact contract. The earlier SSR-only design is superseded.
 
 ## Verified contract and CLI mapping
 
@@ -24,7 +24,7 @@ Arrays select alternatives within a family; separate filter families combine. Ca
 - Do not combine raw state with explicitly supplied filter/limit flags; reject ambiguity with exit 2. With flags, the query may be omitted for filters-only searches.
 - Retain version-1 envelopes and the default unfiltered query representation. Echo canonical filters in query.searchState; omit the default limit from that state, include a non-default limit. result.pageSize is the requested limit, not an exact returned count. At most one job/company and no pagination remain upstream limits.
 - Key anonymous search/count cache entries by a new transport schema name, configured base URL, and full canonical MCP arguments including effective limit. Equivalent raw/flag or reordered-array requests must share the same canonical envelope; semantically distinct arguments must not collide. Count continues sharing matching search entries.
-- Preserve existing Python call signatures through optional trailing arguments/defaults and preserve TTL/bypass behavior. No runtime dependency is added.
+- Preserve existing Python call signatures through optional trailing arguments/defaults and preserve TTL/bypass behavior. Existing Python calls search("", 0, raw_state) and count("", raw_state) use an empty-string sentinel and remain valid. The CLI must independently reject an explicitly supplied positional query, including an empty string, alongside raw state. No runtime dependency is added.
 
 ### Live evidence — 2026-10-18
 
@@ -36,7 +36,7 @@ Implementation tests must inspect exact normalized MCP arguments for each accept
 
 ### Implementation verification — 2026-10-18
 
-- All 468 offline tests and all pre-commit checks passed. Transport tests inspect exact MCP requests, canonical envelopes/cache keys, supported enums and limits, and invalid-before-I/O behavior for search and count.
+- All 470 offline tests and all pre-commit checks passed. Transport tests inspect exact MCP requests, canonical envelopes/cache keys, supported enums and limits, and invalid-before-I/O behavior for search and count. Independent review identified the legacy Python empty-query/raw-state convention; the fix and two regressions preserve it without weakening CLI conflict checks.
 - The opt-in live probe passed public search, details, and the combined Germany/Remote/Full Time request with matching type metadata.
 - A CLI-level isolated-cache check passed the initial miss, equivalent raw-state cache hit, shared count entry, and a fresh limit-25 request. The fresh request returned 25 jobs, each Remote and including Full Time. Only aggregate counts and booleans were logged.
 - These checks do not verify every geographic string or individual employment enum against live postings, facets, authentication, or saved-job mutations. Published v0.2.1 does not include these flags; installation guidance remains explicitly versioned.

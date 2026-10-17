@@ -23,7 +23,7 @@ def search(
     """Fetch and normalize the supported public search response.
 
     Args:
-        query: Query-text mode.
+        query: Query-text mode; an empty string retains the legacy raw-state calling convention.
         page: Compatibility page number; only page zero is supported.
         raw_search_state: Optional raw JSON object mode.
         no_cache: Bypass anonymous cache reads and writes.
@@ -33,6 +33,7 @@ def search(
     Returns:
         Stable version-1 search envelope.
     """
+    query = None if raw_search_state is not None and query == "" else query
     state, arguments = build_search_arguments(query, raw_search_state, filters)
     if page != 0:
         raise InvalidSearchState("HiringCafe's supported search interface does not provide pagination; use --page 0")

@@ -381,6 +381,23 @@ def test_python_filter_arguments_preserve_positional_ttl_and_bypass_parameters(r
     assert filters == {"workplace_types": ["Remote", "Remote"], "limit": 1}
 
 
+@pytest.mark.parametrize("extra", [{}, {"workplace_types": ["Remote"], "limit": 5}])
+def test_python_raw_state_preserves_empty_query_sentinel(requests, extra):
+    """Condition: existing Python search/count callers pass an empty query alongside raw state.
+
+    Expected: both APIs preserve raw mode, canonical output, and their shared cache.
+    """
+    raw = json.dumps({"searchQuery": "engineer", **extra})
+
+    result = search.search("", 0, raw)
+    result_count = count.count("", raw)
+
+    assert result["query"] == result_count["query"]
+    assert result["query"]["searchState"] == {"searchQuery": "engineer", **extra}
+    assert result_count["count"] == 27
+    assert len(requests) == 1
+
+
 @pytest.mark.parametrize("query", [False, 0, [], {}])
 def test_python_invalid_query_types_fail_before_io(no_io, query):
     """Condition: a Python caller supplies nonstring query text.
