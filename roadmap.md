@@ -53,7 +53,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 1.5 `job show` command | Merged | Implemented in PR #11. |
 | 2.1 Firebase session, import, and email login | Merged | Implemented in PR #12. |
 | 2.2 `auth status` | Merged | Implemented in PR #12. |
-| 2.3 `auth login` browser flow | Deferred | Blocked on a verified browser OAuth route and localhost authorization behavior. |
+| 2.3 `auth login` browser flow | Verification | Localhost is authorized and public Google/SDK preflight passes. Spec permits an isolated nonshipping verification harness; production remains blocked on user-completed provider/callback evidence. |
 | 2.4 `auth logout` | Merged | Implemented in PR #12. |
 | 3.1 Saved-job models | Merged | Implemented in PR #13. |
 | 3.2 `saved-jobs list` | Merged | Implemented in PR #12. |
@@ -83,7 +83,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.4 Search filters and facets | Partial | PR #54 implements location/workplace/employment/limit flags, raw-state validation, canonical shared cache keys, and probe. 470 offline tests, pre-commit, and live CLI cache/filter checks pass. Not in PyPI v0.2.1; other families and facets remain gated. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
-| 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
+| 8.7 Browser OAuth login | Verification | Uses PR 2.3's isolated verification procedure; no production login until real provider/callback and temporary-session checks pass. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
 | 10.1 Shared HiringCafe CLI agent skill | Merged | Implemented in PR #48; capability and audit corrections included. |
@@ -555,12 +555,12 @@ Acceptance criteria:
 
 #### Spec
 
-Do **not** implement this yet. OAuth popups are restricted by Firebase authorized-domain configuration, and localhost behavior has not been verified. Build only after a real-account capture proves a route that does not require the CLI to see a provider password.
+Do **not** implement production login yet. The public project configuration confirms localhost authorization, and Google/SDK preflight checks pass, but neither establishes provider success or callback behavior. Follow [PR 2.3](specs/pr-2.3-auth-login-browser-flow/spec.md)'s temporary, nonshipping verification procedure. Build production login only after a user-completed flow proves the route without exposing a provider password.
 
 Potential future flow, if verified:
 
 1. CLI opens a local login page using the same Firebase web config.
-2. User chooses Google, Microsoft, Facebook, or email/password in their own browser.
+2. User chooses a separately verified provider in their normal browser; initial verification is Google only.
 3. Local page obtains the Firebase user and refresh token.
 4. CLI receives only the refresh token over loopback, stores it, and closes the flow.
 
