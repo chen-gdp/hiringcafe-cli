@@ -127,7 +127,11 @@ def main(argv: list[str] | None = None) -> None:
     Args:
         argv: Optional argv list; defaults to ``sys.argv[1:]``.
     """
-    arguments = build_parser().parse_args(argv)
+    parser = build_parser()
+    arguments = parser.parse_args(argv)
+    ttl = getattr(arguments, "cache_ttl", None)
+    if ttl is not None and ttl < 0:
+        parser.error("--cache-ttl must be nonnegative")
     handler = getattr(arguments, "handler", None)
     if handler is not None:
         json_output = getattr(arguments, "json", False)

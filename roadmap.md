@@ -75,7 +75,7 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48; capability and audit corrections included. |
 | 11.1 Saved-job Firestore recovery | Open | Collection paths, atomic history transforms, timestamps, visibility, and conflict guards implemented; transport regressions pass. Live write verification pending. |
 | 11.2 Save hydration recovery | Open | Investigate verified replacement for blocked hydration; implementation gated on live evidence. |
-| 11.3 Cache freshness recovery | Open | Enforce override age and migrate unverifiable old entries; spec prepared. |
+| 11.3 Cache freshness recovery | Open | Override age, zero/negative TTL, and old-schema migration implemented; regression tests pass. Review and release pending. |
 | 11.4 DNS/public-read resilience | Open | Bounded read retries and safe diagnostics; compare execution environments. |
 | 11.5 Recovery patch release | Open | Review, merge, publish v0.2.1 and verify installed artifact after recovery checks. |
 
