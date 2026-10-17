@@ -73,6 +73,11 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
 | 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48; capability and audit corrections included. |
+| 11.1 Saved-job Firestore recovery | Open | Collection paths, atomic history transforms, timestamps, visibility, and conflict guards implemented; transport regressions pass. Live write verification pending. |
+| 11.2 Save hydration recovery | Open | Investigate verified replacement for blocked hydration; implementation gated on live evidence. |
+| 11.3 Cache freshness recovery | Open | Enforce override age and migrate unverifiable old entries; spec prepared. |
+| 11.4 DNS/public-read resilience | Open | Bounded read retries and safe diagnostics; compare execution environments. |
+| 11.5 Recovery patch release | Open | Review, merge, publish v0.2.1 and verify installed artifact after recovery checks. |
 
 
 ## Product goal
@@ -1475,3 +1480,7 @@ This phase packages project-specific agent instructions in the repository so age
 - Skill statements match README and roadmap support status; unsupported features are not presented as implemented.
 - No runtime endpoint/API behavior is added; audit evidence and official documentation inform the capability snapshot without another live mutation or login.
 - README, skill, roadmap, and this spec pass the repository's documentation and pre-commit checks.
+
+## Phase 11 — Capability recovery and patch release
+
+Implement and review separate stacked PRs under [11.1](specs/pr-11.1-saved-job-recovery/spec.md), [11.2](specs/pr-11.2-save-hydration-recovery/spec.md), [11.3](specs/pr-11.3-cache-ttl-recovery/spec.md), [11.4](specs/pr-11.4-dns-read-resilience/spec.md), and [11.5](specs/pr-11.5-patch-release/spec.md). Upstream verification gates remain binding; a partial implementation or green mocks do not establish restored end-to-end capability. After publication, continue structured filters under PR 8.4 and browser OAuth under PR 2.3/8.7, recording verified contracts before implementation.

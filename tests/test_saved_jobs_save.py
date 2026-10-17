@@ -135,7 +135,7 @@ def test_save_hydrates_writes_firestore_then_marketplace(tmp_path, monkeypatch):
     assert values["counted_milestones"] == {}
     assert values["job_information"] == {"title": "Engineer"}
     assert "userTrackingArray" not in values["job_information"]
-    assert values["stageHistory"] == {"appendMissingElements": [{"stage": "saved", "at": values["dateSaved"]}]}
+    assert values["stageHistory"] == [{"stage": "saved", "at": values["dateSaved"]}]
     assert calls[2][0] == "POST"
     assert json.loads(calls[2][2]) == {"job_id": "job-id", "user_token": "id-token", "stage": "saved"}
     assert "id-token" not in output.getvalue()

@@ -15,6 +15,8 @@ The CLI gives your agent structured access to public jobs and, when authenticate
 
 **v0.2.0 capability audit:** public reads, existing-session authentication, and saved-job listing passed live checks on 2026-10-17. Saving, staging, and removing jobs have known blockers/defects. Browser OAuth is not implemented. Upstream MCP documents structured filters, but the current CLI does not expose them. See the [current capability audit](roadmap.md#current-capability-audit--cli-v020) for evidence and limits.
 
+Unreleased recovery work repairs saved-job Firestore paths, atomic history writes, timestamps, and hidden-state updates under [PR 11.1's spec](specs/pr-11.1-saved-job-recovery/spec.md). These repairs are covered by offline transport tests, not yet a live mutation roundtrip. Saving still requires a verified replacement for blocked job hydration; this is not a claim that published v0.2.0 mutations work.
+
 > **Unofficial client.** This project is not affiliated with, endorsed by, or supported by Hiring Cafe. Use your own account, respect the service, and expect upstream APIs to change.
 
 ## Contents
