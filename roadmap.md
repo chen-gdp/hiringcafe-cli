@@ -6,6 +6,22 @@
 
 Verified against the live site on 2026-10-11 (Asia/Jakarta) and HiringCafe's current integration documentation. The public MCP connector is an official read-only integration; the older SSR and job-description routes below were historically verified but are not currently usable from the CLI's network path.
 
+### Current capability audit — CLI v0.2.0
+
+Recorded 2026-10-18 from the 2026-10-17 audit. These findings supersede older working-feature claims below; `Merged` records implementation history, not current operational success.
+
+| Capability | Evidence and current limit |
+|---|---|
+| Public search/count/details, JSON/JSONL | Live reads succeeded; CLI returns at most 10 jobs, one per company, without pagination. No login or separate MCP plugin is required. |
+| Existing-session refresh/status and saved-job listing | Live checks succeeded. Listing returns at most 20 jobs; stage filtering exists, but each stage was not separately live-tested. |
+| Auth import/logout; email/password login | Import/logout pass offline tests; fresh email login was not live-tested. Browser OAuth is unimplemented. |
+| Saved-job save/stage/remove | Broken or blocked. Hydration returned HTTP 403. Document GET/PATCH paths omit `savedJobs/`; the correct collection path retrieved an existing document while the CLI path returned 403. Save/stage encode history transforms incorrectly, and stage changes omit `isHidden`. No live mutations were attempted. |
+| Cache and purge | Cache hits and isolated purge succeeded. Offline reproduction showed `--cache-ttl 0` still reads an existing valid entry; use `--no-cache` for fresh data. |
+| DNS and retries | The reported DNS failure did not reproduce. Its cause remains unresolved; MCP requests do not automatically retry. OAuth and cache bypass do not repair DNS. |
+| Structured filters/facets | Not exposed by the CLI. Upstream MCP documents structured filters; this is not proof that each filter has been live-verified. Facet discovery remains separately unverified. |
+
+The audit's 105 passing offline tests and pre-commit checks do not establish that account writes work: their mocks skip the defective request construction. Follow-up implementation PRs must add specs and verify the relevant transport contracts before claiming recovery. See [PR 10.1](specs/pr-10.1-shared-agent-skill/spec.md) for this documentation correction.
+
 This file is the project source of truth. Every PR must reference one PR spec below. If implementation proves a spec wrong, update this roadmap in the same PR before changing code.
 
 ## Implementation status
@@ -50,12 +66,13 @@ Statuses are the audit source for agents and contributors. Update this table in 
 | 8.3.3 Release artifact staging | Merged | Implemented in PR #43; released as `v0.1.4`. |
 | 8.3.4 Runtime package version sync | Merged | Implemented in PR #44; released as `v0.1.5`. |
 | 8.3.5 Published-package README guide | Merged | Implemented in PR #45. |
-| 8.4 Search filters and facets | Deferred | Spec ready; requires captured searchState and exact facet contract. |
+| 8.4 Search filters and facets | Deferred | MCP filters are documented but not exposed; verify each selected filter. Exact facet contract remains unknown. |
 | 8.5 Tracker search and saved-job details | Deferred | Requires verified authenticated response captures. |
 | 8.6 Saved-job list pagination | Deferred | Requires cursor semantics or a verified higher-limit query. |
 | 8.7 Browser OAuth login | Deferred | Spec ready in PR 2.3; live loopback/provider behavior remains unverified. |
 | 8.8 Additional CI assurance | Deferred | Add after Phase 7; static-analysis scope selected. |
 | 9.1 First-party read-only MCP transport | Merged | Implemented in PR #46; released as `v0.2.0`. |
+| 10.1 Shared HiringCafe CLI agent skill | Open | Implemented in stacked PR #48; capability and audit corrections included. |
 
 
 ## Product goal
@@ -1359,11 +1376,11 @@ Make the public README match the now-published PyPI package:
 
 Add only contract-verified search inputs:
 
-- Capture a working `searchState` for each filter before exposing a CLI flag.
-- Reproduce the narrower result through the verified SSR search route.
+- Verify the documented MCP parameter schema and live behavior for each selected filter before exposing a CLI flag. The earlier SSR-only design is superseded by the official MCP transport.
+- Reproduce filter application through `search_jobs`; text keywords alone do not establish structured filtering.
 - Capture the exact `/api/search-facets` method, parameters, auth requirement, and response schema before implementing `facets`.
 - Reject invalid values with exit 2 before HTTP.
-- Cache by the canonical complete search state, base URL, and page.
+- Cache by the canonical complete MCP arguments and base URL; do not invent pagination.
 - Keep user-tracking arrays out of normalized output.
 
 #### Out of scope
@@ -1430,3 +1447,31 @@ The anonymous page and raw job-detail routes now receive Cloudflare challenges f
 - HTTP 429 is surfaced as rate-limited without automatic POST retry; HTTP and JSON-RPC failures do not print response bodies or credentials.
 - Cache entries use distinct MCP keys; normal tests remain offline and the opt-in probe exposes no job data.
 - README, changelog, endpoint inventory, and this spec agree on the read-only scope and limitations.
+
+## Phase 10 — Agent integration and usability
+
+This phase packages project-specific agent instructions in the repository so agents can discover supported CLI workflows and respect account and API boundaries.
+
+### PR 10.1 — Shared HiringCafe CLI agent skill
+
+#### Spec
+
+- Add a portable `SKILL.md` under `.agents/skills/hiringcafe-cli/` for agents using the installed CLI or working in this repository.
+- Include a versioned capability snapshot: live public reads, session status, and saved-job listing; offline-tested import/logout; unverified fresh email login; broken/blocked save/stage/remove; and unimplemented browser OAuth and advanced features.
+- Document installation, command/output examples, cache/storage controls, exit codes, the TTL caveat, and the unresolved DNS issue. Distinguish CLI filter limitations from documented upstream MCP filters.
+- Tell agents to check the installed CLI version and command help, use structured output, distinguish errors from empty results, and respect cache/rate-limit behavior.
+- Define credential privacy and explicit authorization boundaries for account data and saved-job mutations.
+- Require repository contributors to follow `AGENTS.md`, `roadmap.md`, and the corresponding `specs/pr-*/spec.md` before implementation.
+- Link to the skill from the README's agent section.
+
+#### Out of scope
+
+- New commands, API endpoints, runtime dependencies, credential access, or changes to CLI behavior.
+- Claiming full HiringCafe feature parity, working saved-job mutations, or resolution of the intermittent DNS failure.
+
+#### Acceptance criteria
+
+- A repo-aware agent can find and follow the skill without machine-specific paths or user/account details.
+- Skill statements match README and roadmap support status; unsupported features are not presented as implemented.
+- No runtime endpoint/API behavior is added; audit evidence and official documentation inform the capability snapshot without another live mutation or login.
+- README, skill, roadmap, and this spec pass the repository's documentation and pre-commit checks.
