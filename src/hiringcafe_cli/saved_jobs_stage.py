@@ -7,7 +7,7 @@ from hiringcafe_cli.auth import store
 from hiringcafe_cli.firebase import FirebaseAuthError, FirebaseClient
 from hiringcafe_cli.http_client import WebClient
 from hiringcafe_cli.saved_jobs import VALID_STAGES, decode_firestore_fields
-from hiringcafe_cli.saved_jobs_list import FirestoreClient
+from hiringcafe_cli.saved_jobs_list import FirestoreClient, FirestoreConflict
 
 OLD_LIST_STAGES = {"saved", "applied", "hidden"}
 
@@ -24,17 +24,19 @@ def change_stage(object_id: str, stage: str) -> None:
     old_stage = fields.get("stage")
     if old_stage not in VALID_STAGES:
         raise LookupError(f"saved job has no usable stage: {object_id}")
-    web = WebClient()
-    web.marketplace_stage(object_id, credentials["idToken"], stage)
-    saved_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    saved_at = datetime.now(timezone.utc)
     values = {
         "stage": stage,
+        "isHidden": stage == "hidden",
         "dateSaved": saved_at,
-        "stageHistory": {"appendMissingElements": [{"stage": stage, "at": saved_at}]},
+        "stageHistory": [{"stage": stage, "at": saved_at}],
     }
     if fields.get("firstSavedAt") is None:
-        values["firstSavedAt"] = fields.get("dateSaved", saved_at)
-    firestore.update(document_id, values)
+        first_saved = fields.get("dateSaved")
+        values["firstSavedAt"] = datetime.fromisoformat(first_saved.replace("Z", "+00:00")) if first_saved else saved_at
+    web = WebClient()
+    web.marketplace_stage(object_id, credentials["idToken"], stage)
+    firestore.update(document_id, values, document.get("updateTime"))
     if old_stage in OLD_LIST_STAGES and old_stage != stage:
         web.remove_from_list(object_id, credentials["idToken"], old_stage)
 
@@ -54,6 +56,9 @@ def run(argv, json_output: bool = False) -> int:
     except FirebaseAuthError as error:
         print(f"hiringcafe: {error}", file=sys.stderr)
         return 5
+    except FirestoreConflict as error:
+        print(f"hiringcafe: stage change completed partially: {error}", file=sys.stderr)
+        return 6
     except LookupError as error:
         print(f"hiringcafe: {error}", file=sys.stderr)
         return 6

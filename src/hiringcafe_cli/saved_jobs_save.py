@@ -21,7 +21,7 @@ def save(object_id: str, stage: str) -> None:
     """Hydrate, merge-write Firestore, then sync the marketplace stage."""
     credentials = FirebaseClient().refresh(store().load().refresh_token)
     hydrated = WebClient().job_description(object_id)
-    saved_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    saved_at = datetime.now(timezone.utc)
     values = {
         **_clean_job(hydrated),
         "objectID": object_id,
@@ -29,7 +29,7 @@ def save(object_id: str, stage: str) -> None:
         "owner": credentials["userId"],
         "dateSaved": saved_at,
         "stage": stage,
-        "stageHistory": {"appendMissingElements": [{"stage": stage, "at": saved_at}]},
+        "stageHistory": [{"stage": stage, "at": saved_at}],
         "counted_milestones": {},
     }
     FirestoreClient(credentials["idToken"]).save(f"{credentials['userId']}_{object_id}", values)

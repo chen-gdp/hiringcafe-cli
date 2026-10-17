@@ -1,5 +1,6 @@
 import contextlib
 import io
+from datetime import datetime, timezone
 
 from hiringcafe_cli import saved_jobs_stage
 from hiringcafe_cli.firebase import FirebaseAuthError
@@ -117,7 +118,7 @@ def test_stage_orders_marketplace_firestore_then_old_list_cleanup(tmp_path, monk
     calls = []
     monkeypatch.setattr(saved_jobs_stage.FirestoreClient, "get", lambda *_: firestore_document())
 
-    def update(self, document_id, values):
+    def update(self, document_id, values, update_time=None):
         calls.append(("firestore", document_id, values))
 
     monkeypatch.setattr(saved_jobs_stage.FirestoreClient, "update", update)
@@ -136,8 +137,8 @@ def test_stage_orders_marketplace_firestore_then_old_list_cleanup(tmp_path, monk
     document_id, values = calls[1][1:]
     assert document_id == "uid_job-id"
     assert values["stage"] == "interviewing"
-    assert values["stageHistory"] == {"appendMissingElements": [{"stage": "interviewing", "at": values["dateSaved"]}]}
-    assert values["firstSavedAt"] == "2024-01-01T00:00:00Z"
+    assert values["stageHistory"] == [{"stage": "interviewing", "at": values["dateSaved"]}]
+    assert values["firstSavedAt"] == datetime(2024, 1, 1, tzinfo=timezone.utc)
     assert calls[2] == ("remove", "job-id", "id-token", "saved")
 
 
@@ -154,7 +155,7 @@ def test_stage_skips_old_list_cleanup_for_nonlegacy_stage(tmp_path, monkeypatch)
     monkeypatch.setattr(
         saved_jobs_stage.FirestoreClient,
         "update",
-        lambda self, document_id, values: calls.append(("firestore", document_id, values)),
+        lambda self, document_id, values, update_time=None: calls.append(("firestore", document_id, values)),
     )
     monkeypatch.setattr(
         saved_jobs_stage.WebClient,

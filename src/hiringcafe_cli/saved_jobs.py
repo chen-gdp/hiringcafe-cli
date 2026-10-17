@@ -1,6 +1,6 @@
 """Saved-job domain models and Firestore value conversion."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 VALID_STAGES = ("saved", "applied", "interviewing", "offer", "rejected", "ghosted", "hidden")
@@ -88,14 +88,14 @@ def encode_firestore_value(value):
         return {"integerValue": str(value)}
     if isinstance(value, float):
         return {"doubleValue": value}
+    if isinstance(value, datetime):
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise SavedJobError("Firestore timestamp must include a timezone")
+        return {"timestampValue": value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")}
     if isinstance(value, str):
         return {"stringValue": value}
     if isinstance(value, list):
         return {"arrayValue": {"values": [encode_firestore_value(item) for item in value]}}
     if isinstance(value, dict):
-        if set(value) == {"arrayValue"}:
-            return value
-        if set(value) == {"appendMissingElements"}:
-            return {"arrayValue": value}
         return {"mapValue": {"fields": {key: encode_firestore_value(item) for key, item in value.items()}}}
     raise SavedJobError(f"unsupported Firestore value: {type(value).__name__}")
