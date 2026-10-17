@@ -197,6 +197,8 @@ Authenticated saved-job operations are never cached.
 
 In v0.2.0, `--cache-ttl` affects newly written entries but does not shorten an existing entry's lifetime, even when set to zero. Use `--no-cache` when fresh data is required. A normal cache miss also makes a network request; neither mode fixes DNS. Setting `HIRINGCAFE_NO_CACHE=1` disables cache reads and writes for public reads.
 
+The unreleased [cache recovery](specs/pr-11.3-cache-ttl-recovery/spec.md) enforces both the requested maximum age and the entry's original expiry. Zero TTL always fetches fresh data without storing it; negative TTL is rejected. Older entries without verifiable write times are discarded on their next read.
+
 ## Exit codes
 
 | Code | Agent action |

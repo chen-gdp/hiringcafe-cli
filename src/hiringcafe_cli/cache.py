@@ -2,13 +2,14 @@
 
 import hashlib
 import json
+import math
 import os
 import sys
 import tempfile
 import time
 from pathlib import Path
 
-VERSION = 1
+VERSION = 2
 
 
 def default_cache_root(base: Path) -> Path:
@@ -34,6 +35,18 @@ class CacheStore:
         return self.root / f"{name}.json"
 
     def read(self, key: tuple, ttl: int) -> dict | None:
+        """Read an entry only within its original lifetime and requested age limit.
+
+        Args:
+            key: Anonymous request cache key.
+            ttl: Maximum age in seconds; zero always misses.
+
+        Returns:
+            The fresh normalized value, or None for an absent or invalid entry.
+        """
+        if ttl <= 0:
+            print("cache miss", file=sys.stderr)
+            return None
         path = self.path(key)
         if not path.exists():
             print("cache miss", file=sys.stderr)
@@ -46,13 +59,17 @@ class CacheStore:
         if not (
             isinstance(payload, dict)
             and payload.get("version") == VERSION
-            and isinstance(payload.get("expiresAt"), int)
+            and type(payload.get("writtenAt")) in (int, float)
+            and type(payload.get("expiresAt")) in (int, float)
             and isinstance(payload.get("value"), dict)
         ):
             path.unlink(missing_ok=True)
             print("cache miss", file=sys.stderr)
             return None
-        if time.time() >= payload["expiresAt"]:
+        now = time.time()
+        written_at = payload["writtenAt"]
+        expires_at = payload["expiresAt"]
+        if not (0 <= written_at <= now < expires_at < math.inf and now - written_at < ttl):
             path.unlink(missing_ok=True)
             print("cache miss", file=sys.stderr)
             return None
@@ -60,7 +77,16 @@ class CacheStore:
         return payload["value"]
 
     def write(self, key: tuple, value: dict, ttl: int) -> None:
-        """Atomically write an owner-only cache entry."""
+        """Atomically write an owner-only cache entry with a verifiable lifetime.
+
+        Args:
+            key: Anonymous request cache key.
+            value: Normalized anonymous response.
+            ttl: Lifetime in seconds; zero skips writing.
+        """
+        if ttl <= 0:
+            return
+        written_at = time.time()
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self.root.exists():
             os.chmod(self.root, 0o700)
@@ -70,7 +96,7 @@ class CacheStore:
             with os.fdopen(descriptor, "w", encoding="utf-8") as output:
                 os.chmod(temporary_name, 0o600)
                 json.dump(
-                    {"version": VERSION, "expiresAt": int(time.time() + ttl), "value": value},
+                    {"version": VERSION, "writtenAt": written_at, "expiresAt": written_at + ttl, "value": value},
                     output,
                     separators=(",", ":"),
                 )
